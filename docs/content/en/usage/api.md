@@ -29,7 +29,7 @@ You can also override these settings with environment variables (prefix `SAVEANY
 | `SAVEANY_API_TOKEN` | `api.token` |
 
 {{< hint warning >}}
-If `token` is empty, the API server will be accessible **without any authentication**, which is a security risk.
+`token` is required. The server refuses to start when the API is enabled without a token.
 {{< /hint >}}
 
 ## Authentication
@@ -45,6 +45,16 @@ On authentication failure, the server returns `401`:
 ```json
 { "error": "unauthorized", "message": "invalid token" }
 ```
+
+## Web Dashboard
+
+After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. Enter the API token to select a task type and storage, create tasks, monitor progress, cancel tasks, and manage Bot Relay routes.
+
+{{< hint info >}}
+The token is stored only in the current browser session's `sessionStorage`. The dashboard does not modify server-side TOML, environment variables, or command-line flags; change those on the server and restart for them to take effect.
+{{< /hint >}}
+
+Bot Relay routes are stored separately in the database, so create, edit, enable/disable, and delete operations take effect immediately. Enable Userbot first and ensure its account has joined the source channel. The receiving SaveAny user must also have an available default storage.
 
 ## Error Response Format
 
@@ -119,6 +129,35 @@ Returns all currently loaded storage backends.
   ]
 }
 ```
+
+---
+
+### GET /api/v1/users — List Relay Owners
+
+Returns each user's database ID, Telegram Chat ID, default storage, and whether the user is ready to receive Relay files.
+
+---
+
+### GET/POST /api/v1/bot-relays — List or Create Relays
+
+Example create request:
+
+```json
+{
+  "user_id": 1,
+  "source_chat": "mychannel",
+  "target_bot": "btfffbot",
+  "enabled": true,
+  "timeout_seconds": 900,
+  "quiet_seconds": 5
+}
+```
+
+The source must be a Telegram channel and the target must be a bot. `timeout_seconds` accepts 1–86400 seconds; `quiet_seconds` accepts 1–300 seconds and cannot exceed the timeout.
+
+### PUT/DELETE /api/v1/bot-relays/:id — Update or Delete a Relay
+
+`PUT` uses the same request body as the create endpoint. New channel Deep Links use the updated route immediately.
 
 ---
 

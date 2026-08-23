@@ -66,7 +66,7 @@ blacklist = true
 docker run -d --name saveany-bot \
     -v ./config.toml:/app/config.toml \
     -v ./downloads:/app/downloads \
-    ghcr.io/krau/saveany-bot:latest
+    ghcr.io/acecandy/saveany-bot:latest
 ```
 
 请 [**查看文档**](https://sabot.unv.app/) 以获取更多配置选项和使用方法.

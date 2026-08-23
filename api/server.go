@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"net"
 	"net/http"
@@ -10,6 +11,9 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/krau/SaveAny-Bot/config"
 )
+
+//go:embed web/index.html
+var dashboardHTML []byte
 
 // Server API 服务器
 type Server struct {
@@ -54,6 +58,9 @@ func NewServer(ctx context.Context) *Server {
 	})
 	mux.HandleFunc("/api/v1/storages", handlers.ListStoragesHandler)
 	mux.HandleFunc("/api/v1/task-types", handlers.GetTaskTypesHandler)
+	mux.HandleFunc("/api/v1/users", handlers.ListUsersHandler)
+	mux.HandleFunc("/api/v1/bot-relays", handlers.BotRelaysHandler)
+	mux.HandleFunc("/api/v1/bot-relays/", handlers.BotRelayHandler)
 
 	// 404 处理
 	mux.HandleFunc("/", NotFoundHandler)
@@ -66,6 +73,13 @@ func NewServer(ctx context.Context) *Server {
 	if token != "" {
 		handler = AuthMiddleware()(handler)
 	}
+
+	// The dashboard shell is public so browsers can load it before the user
+	// enters an API token. All API routes remain behind the auth middleware.
+	publicMux := http.NewServeMux()
+	publicMux.HandleFunc("GET /{$}", dashboardHandler)
+	publicMux.Handle("/", handler)
+	handler = publicMux
 
 	// Add logging middleware.
 	handler = loggingMiddleware(handler)
@@ -82,6 +96,19 @@ func NewServer(ctx context.Context) *Server {
 			IdleTimeout:  120 * time.Second,
 		},
 		factory: factory,
+	}
+}
+
+// dashboardHandler serves the dependency-free web dashboard.
+func dashboardHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-Frame-Options", "DENY")
+	if _, err := w.Write(dashboardHTML); err != nil {
+		log.FromContext(r.Context()).Errorf("Failed to serve dashboard: %v", err)
 	}
 }
 

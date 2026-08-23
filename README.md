@@ -69,7 +69,7 @@ Run Save Any Bot with Docker:
 docker run -d --name saveany-bot \
     -v ./config.toml:/app/config.toml \
     -v ./downloads:/app/downloads \
-    ghcr.io/krau/saveany-bot:latest
+    ghcr.io/acecandy/saveany-bot:latest
 ```
 
 Please [**read the docs**](https://sabot.unv.app/en/) for more configuration options and usage.

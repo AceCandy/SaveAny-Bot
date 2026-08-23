@@ -93,6 +93,9 @@ func Init(ctx context.Context) <-chan struct{} {
 		}
 		handlers.Register(result.client.Dispatcher)
 		ectx = result.client.CreateContext()
+		if config.C().Telegram.Userbot.Enable {
+			handlers.StartBotRelay(ctx, ectx)
+		}
 		log.FromContext(ctx).Info("Bot initialization completed.")
 	}
 	return shouldRestart

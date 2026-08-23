@@ -29,7 +29,7 @@ token  = "your-token" # 鉴权 Token，强烈建议设置
 | `SAVEANY_API_TOKEN` | `api.token` |
 
 {{< hint warning >}}
-若 `token` 为空，API 服务将**不进行任何鉴权**即可访问，存在安全风险。
+`token` 为必填项；启用 API 但未设置 Token 时，服务会拒绝启动。
 {{< /hint >}}
 
 ## 鉴权
@@ -45,6 +45,16 @@ Authorization: Bearer <your-token>
 ```json
 { "error": "unauthorized", "message": "invalid token" }
 ```
+
+## Web 控制台
+
+API 启动后，访问 `http://<服务器地址>:<端口>/` 即可打开内置控制台。输入 API Token 后，可以选择任务类型和存储、创建任务、查看进度、取消任务，以及管理 Bot Relay 路由。
+
+{{< hint info >}}
+Token 仅保存在当前浏览器会话的 `sessionStorage` 中。控制台不修改服务端 TOML、环境变量或启动参数；这些配置仍需在服务端调整并重启后生效。
+{{< /hint >}}
+
+Bot Relay 路由独立保存在数据库中，新增、编辑、启停和删除会即时生效。使用前需启用 Userbot，并确保 Userbot 账号已加入来源频道；接收用户还必须已配置可用的默认存储。
 
 ## 错误响应格式
 
@@ -119,6 +129,35 @@ Authorization: Bearer <your-token>
   ]
 }
 ```
+
+---
+
+### GET /api/v1/users — 列出 Relay 接收用户
+
+返回用户 ID、Telegram Chat ID、默认存储及是否可以接收 Relay 文件。
+
+---
+
+### GET/POST /api/v1/bot-relays — 查询或新增 Relay
+
+新增请求示例：
+
+```json
+{
+  "user_id": 1,
+  "source_chat": "mychannel",
+  "target_bot": "btfffbot",
+  "enabled": true,
+  "timeout_seconds": 900,
+  "quiet_seconds": 5
+}
+```
+
+来源必须是 Telegram 频道，目标必须是 Bot。`timeout_seconds` 允许 1–86400 秒，`quiet_seconds` 允许 1–300 秒且不能超过等待超时。
+
+### PUT/DELETE /api/v1/bot-relays/:id — 更新或删除 Relay
+
+`PUT` 请求体与新增接口相同。配置修改后，频道中新的 Deep Link 会立即使用最新配置。
 
 ---
 

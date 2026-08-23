@@ -350,6 +350,12 @@ bot:
     storage:
       info_filename_prefix: "Filename: "
       info_prompt_select_storage: "\nPlease select storage"
+    relay:
+      queued: "<b>🔗 Bot Relay queued</b>\n\nTarget: <code>@{{.Bot}}</code>\nPayload: <code>{{.Payload}}</code>\nQueue position: <code>{{.Position}}</code>"
+      waiting: "<b>⏳ Bot Relay waiting for a response</b>\n\nSent <code>/start {{.Payload}}</code> to <code>@{{.Bot}}</code>"
+      pending: "<b>⌛ Bot Relay Pending Queue</b>\n\nWaiting for media from <code>@{{.Bot}}</code>"
+      received: "<b>📥 Bot Relay collecting media</b>\n\nReceived: <code>{{.Count}}</code> file(s)"
+      failed: "<b>❌ Bot Relay failed</b>\n\nReason: <code>{{.Reason}}</code>"
     progress:
       batch_status_header: "<b>📦 Processing</b>\n\nFiles: <code>{{.Total}}</code> | Total size: <code>{{.TotalSize}}</code>\nStatus: ✅ <code>{{.Completed}}</code> | 📥 <code>{{.Downloaded}}</code> | ⏳ <code>{{.Waiting}}</code>\nTotal speed: ⬇️ <code>{{.DownloadSpeed}}</code> | ⬆️ <code>{{.UploadSpeed}}</code>"
       batch_item_downloading: "<blockquote><b>⬇️ {{.Index}}/{{.Total}} Downloading</b>\n<code>{{.Name}}</code>\n{{.Bar}} <code>{{.Progress}}%</code>\nSpeed: <code>{{.Speed}}</code>\nSize: <code>{{.Current}}</code> / <code>{{.Size}}</code></blockquote>"

@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SaveAny-Bot 任务控制台">
+  <title>SaveAny 控制台</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07130f;
+      --panel: rgba(13, 34, 27, .82);
+      --panel-strong: #102c23;
+      --line: rgba(159, 224, 191, .16);
+      --text: #effbf4;
+      --muted: #91aa9e;
+      --accent: #71e6ae;
+      --accent-strong: #2bc97b;
+      --blue: #78b7ff;
+      --warning: #ffc768;
+      --danger: #ff7f86;
+      --radius: 20px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .28);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% -10%, rgba(43, 201, 123, .19), transparent 33rem),
+        radial-gradient(circle at 95% 5%, rgba(77, 137, 255, .12), transparent 28rem),
+        var(--bg);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+
+    :focus-visible {
+      outline: 3px solid rgba(113, 230, 174, .45);
+      outline-offset: 2px;
+    }
+
+    .shell { width: min(1440px, 100%); margin: 0 auto; padding: 0 28px 56px; }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 78px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 19, 15, .86);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: max-content; }
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(113, 230, 174, .32);
+      border-radius: 14px;
+      color: #092117;
+      background: linear-gradient(145deg, #a2f4cb, var(--accent-strong));
+      box-shadow: 0 12px 28px rgba(43, 201, 123, .2);
+      font-weight: 900;
+    }
+    .brand strong { display: block; letter-spacing: -.02em; }
+    .brand small { display: block; margin-top: 2px; color: var(--muted); }
+
+    .connection { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: min(610px, 100%); }
+    .token-wrap { position: relative; flex: 1; }
+    .token-wrap input { padding-left: 42px; }
+    .token-icon { position: absolute; top: 50%; left: 15px; color: var(--muted); transform: translateY(-50%); }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 76px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status::before { width: 8px; height: 8px; border-radius: 50%; background: #64766d; content: ""; }
+    .status.ok { color: var(--accent); }
+    .status.ok::before { background: var(--accent); box-shadow: 0 0 0 5px rgba(113, 230, 174, .1); }
+    .status.error { color: var(--danger); }
+    .status.error::before { background: var(--danger); }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(5, 18, 13, .72);
+      transition: border-color .2s, background .2s;
+    }
+    input, select { height: 44px; padding: 0 13px; }
+    textarea { min-height: 108px; padding: 12px 13px; resize: vertical; line-height: 1.55; }
+    input:hover, select:hover, textarea:hover { border-color: rgba(113, 230, 174, .32); }
+    input::placeholder, textarea::placeholder { color: #61786c; }
+
+    .button {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 17px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      color: #082116;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      box-shadow: 0 10px 24px rgba(43, 201, 123, .14);
+      font-weight: 750;
+    }
+    .button:hover:not(:disabled) { filter: brightness(1.08); }
+    .button.secondary { border-color: var(--line); color: var(--text); background: rgba(255, 255, 255, .025); box-shadow: none; }
+    .button.danger { border-color: rgba(255, 127, 134, .28); color: var(--danger); background: rgba(255, 127, 134, .08); box-shadow: none; }
+    .button.small { min-height: 34px; padding: 0 12px; font-size: 13px; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 40px;
+      align-items: end;
+      padding: 58px 0 38px;
+    }
+    .eyebrow { margin: 0 0 11px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { max-width: 760px; margin: 0; font-size: clamp(36px, 5vw, 68px); line-height: 1.02; letter-spacing: -.055em; }
+    .hero-copy { max-width: 650px; margin: 20px 0 0; color: var(--muted); font-size: 16px; line-height: 1.75; }
+    .hero-copy strong { color: var(--text); }
+
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stat {
+      padding: 17px 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(18, 49, 39, .76), rgba(8, 24, 18, .72));
+    }
+    .stat span { display: block; color: var(--muted); font-size: 12px; }
+    .stat strong { display: block; margin-top: 5px; font-size: 25px; letter-spacing: -.04em; }
+
+    .workspace { display: grid; grid-template-columns: minmax(340px, .82fr) minmax(480px, 1.5fr); gap: 18px; align-items: start; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    .panel-body { padding: 24px; }
+    .panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .panel-heading h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+    .panel-heading p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+    form { display: grid; gap: 16px; }
+    fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+    .field-group { display: grid; gap: 16px; }
+    .field { display: grid; gap: 7px; }
+    .field label, .field-label { color: #d9ede3; font-size: 13px; font-weight: 650; }
+    .field-help { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .form-note { min-height: 39px; margin: -2px 0 0; padding: 10px 12px; border-radius: 10px; color: #bdd4c8; background: rgba(113, 230, 174, .055); font-size: 12px; line-height: 1.55; }
+    .submit { width: 100%; margin-top: 2px; }
+	.relay-section { padding: 18px 0 0; }
+	.relay-actions { display: flex; gap: 10px; }
+	.relay-actions .button { flex: 1; }
+
+    .task-list { display: grid; gap: 11px; }
+    .task-card { padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: rgba(4, 16, 11, .56); }
+    .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .task-title { min-width: 0; }
+    .task-title strong { display: block; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+    .task-title code { display: block; overflow: hidden; margin-top: 5px; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .badge { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 999px; color: var(--muted); background: rgba(145, 170, 158, .1); font-size: 11px; font-weight: 750; white-space: nowrap; }
+    .badge.running { color: var(--blue); background: rgba(120, 183, 255, .1); }
+    .badge.queued { color: var(--warning); background: rgba(255, 199, 104, .1); }
+    .badge.completed { color: var(--accent); background: rgba(113, 230, 174, .1); }
+    .badge.failed, .badge.cancelled { color: var(--danger); background: rgba(255, 127, 134, .1); }
+    .task-meta { display: flex; flex-wrap: wrap; gap: 7px 14px; margin-top: 13px; color: var(--muted); font-size: 12px; }
+    .progress { height: 6px; margin-top: 13px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .065); }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); transition: width .35s ease; }
+    .task-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 13px; }
+    .task-bottom small { color: var(--muted); }
+    .task-error { margin: 12px 0 0; padding: 9px 10px; border-radius: 9px; color: #ffc0c4; background: rgba(255, 127, 134, .08); font-size: 12px; line-height: 1.5; }
+
+    .empty { padding: 56px 22px; text-align: center; }
+    .empty-mark { display: grid; width: 54px; height: 54px; margin: 0 auto 14px; place-items: center; border: 1px dashed rgba(113, 230, 174, .3); border-radius: 18px; color: var(--accent); font-size: 24px; }
+    .empty strong { display: block; }
+    .empty p { max-width: 360px; margin: 8px auto 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .capabilities { padding: 52px 0 0; }
+    .section-heading { max-width: 680px; margin-bottom: 20px; }
+    .section-heading h2 { margin: 0; font-size: 26px; letter-spacing: -.035em; }
+    .section-heading p { margin: 10px 0 0; color: var(--muted); line-height: 1.65; }
+    .capability-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+    .capability { min-height: 188px; padding: 20px; border: 1px solid var(--line); border-radius: 17px; background: rgba(13, 34, 27, .58); }
+    .capability-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; color: var(--accent); background: rgba(113, 230, 174, .1); font-weight: 800; }
+    .capability h3 { margin: 19px 0 8px; font-size: 15px; }
+    .capability p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .tag { padding: 4px 7px; border: 1px solid var(--line); border-radius: 999px; color: #b9cec3; font-size: 10px; }
+
+    footer { display: flex; justify-content: space-between; gap: 20px; padding: 30px 2px 0; color: var(--muted); font-size: 12px; }
+
+    .toast {
+      position: fixed;
+      z-index: 50;
+      right: 24px;
+      bottom: 24px;
+      max-width: min(380px, calc(100vw - 48px));
+      padding: 13px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text);
+      background: #16382d;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { border-color: rgba(255, 127, 134, .35); background: #3d2022; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 1060px) {
+      .hero { grid-template-columns: 1fr; }
+      .stats { max-width: 680px; grid-template-columns: repeat(4, 1fr); }
+      .workspace { grid-template-columns: 1fr; }
+      .capability-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 720px) {
+      .shell { padding: 0 16px 40px; }
+      .topbar { position: static; align-items: flex-start; flex-direction: column; }
+      .connection { align-items: stretch; flex-wrap: wrap; justify-content: flex-start; }
+      .token-wrap { flex-basis: 100%; }
+      .hero { padding-top: 42px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .field-row { grid-template-columns: 1fr; }
+      .panel-body { padding: 19px; }
+      .capability-grid { grid-template-columns: 1fr; }
+      footer { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">S</span>
+        <span><strong>SaveAny</strong><small>任务控制台</small></span>
+      </div>
+      <div class="connection">
+        <div class="token-wrap">
+          <label class="sr-only" for="api-token">API Token</label>
+          <span class="token-icon" aria-hidden="true">⌁</span>
+          <input id="api-token" type="password" autocomplete="off" placeholder="输入 API Token 后连接">
+        </div>
+        <button class="button" id="connect-button" type="button">连接</button>
+        <span class="status" id="connection-status" role="status">未连接</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">One console · every source</p>
+          <h1>把内容送到<br>你想要的地方。</h1>
+          <p class="hero-copy">从直链、Telegram、Telegraph、解析器、yt-dlp 或 Aria2 创建任务，统一保存到已配置的存储。<strong>Token 只保留在当前浏览器会话中。</strong></p>
+        </div>
+        <div class="stats" role="group" aria-label="任务统计">
+          <div class="stat"><span>全部任务</span><strong id="stat-total">—</strong></div>
+          <div class="stat"><span>排队 / 运行</span><strong id="stat-active">—</strong></div>
+          <div class="stat"><span>已完成</span><strong id="stat-completed">—</strong></div>
+          <div class="stat"><span>异常 / 取消</span><strong id="stat-failed">—</strong></div>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <section class="panel" aria-labelledby="create-title">
+          <div class="panel-body">
+            <div class="panel-heading">
+              <div><h2 id="create-title">创建任务</h2><p>选择来源与目标，任务会进入现有下载队列。</p></div>
+            </div>
+
+            <form id="task-form">
+              <div class="field">
+                <label for="task-type">任务类型</label>
+                <select id="task-type" required disabled><option>连接后加载</option></select>
+              </div>
+
+              <p class="form-note" id="task-description">连接 API 后可创建下载或存储间传输任务。</p>
+
+              <fieldset class="field-group" id="destination-fields">
+                <div class="field-row">
+                  <div class="field">
+                    <label for="storage">目标存储</label>
+                    <select id="storage" required disabled><option>连接后加载</option></select>
+                  </div>
+                  <div class="field">
+                    <label for="target-path">保存目录</label>
+                    <input id="target-path" placeholder="例如 downloads/">
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="directlinks ytdlp aria2" disabled hidden>
+                <div class="field">
+                  <label for="urls">下载地址</label>
+                  <textarea id="urls" required placeholder="每行一个 URL"></textarea>
+                  <p class="field-help">直链和视频可填写多个地址；磁力链接请使用 Aria2。</p>
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="ytdlp" disabled hidden>
+                <div class="field">
+                  <label for="ytdlp-flags">yt-dlp 参数</label>
+                  <textarea id="ytdlp-flags" placeholder="每行一个参数，例如：&#10;--extract-audio&#10;--audio-format&#10;mp3"></textarea>
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="aria2" disabled hidden>
+                <div class="field">
+                  <label for="aria2-options">Aria2 选项（JSON）</label>
+                  <textarea id="aria2-options" spellcheck="false" placeholder='例如 {"split":"4"}'></textarea>
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="parseditem" disabled hidden>
+                <div class="field">
+                  <label for="parsed-url">待解析页面</label>
+                  <input id="parsed-url" type="url" required placeholder="https://example.com/page">
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="tgfiles" disabled hidden>
+                <div class="field">
+                  <label for="message-links">Telegram 消息链接</label>
+                  <textarea id="message-links" required placeholder="每行一个 t.me 消息链接"></textarea>
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="tphpics" disabled hidden>
+                <div class="field">
+                  <label for="telegraph-url">Telegraph 文章</label>
+                  <input id="telegraph-url" type="url" required placeholder="https://telegra.ph/...">
+                </div>
+              </fieldset>
+
+              <fieldset class="field-group" data-types="transfer" disabled hidden>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="source-storage">源存储</label>
+                    <select id="source-storage" required disabled></select>
+                  </div>
+                  <div class="field">
+                    <label for="transfer-target-storage">目标存储</label>
+                    <select id="transfer-target-storage" required disabled></select>
+                  </div>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="source-path">源路径</label>
+                    <input id="source-path" required placeholder="例如 backups/">
+                  </div>
+                  <div class="field">
+                    <label for="transfer-target-path">目标路径</label>
+                    <input id="transfer-target-path" required placeholder="例如 restored/">
+                  </div>
+                </div>
+                <p class="field-help">源存储必须支持列目录和读取文件。</p>
+              </fieldset>
+
+              <div class="field">
+                <label for="webhook">Webhook（可选）</label>
+                <input id="webhook" type="url" placeholder="https://example.com/callback">
+              </div>
+
+              <button class="button submit" id="submit-button" type="submit" disabled>加入任务队列</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="tasks-title">
+          <div class="panel-body">
+            <div class="panel-heading">
+              <div><h2 id="tasks-title">任务动态</h2><p>每 5 秒自动刷新，仅显示通过 HTTP API 创建的任务。</p></div>
+              <button class="button secondary small" id="refresh-button" type="button" disabled>刷新</button>
+            </div>
+            <div class="task-list" id="task-list">
+              <div class="empty"><span class="empty-mark">↗</span><strong>先连接 API</strong><p>输入配置文件中的 API Token，即可加载存储、任务类型和运行状态。</p></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="relay-section" aria-labelledby="relay-title">
+        <div class="workspace">
+          <section class="panel">
+            <div class="panel-body">
+              <div class="panel-heading">
+                <div><h2 id="relay-title">Bot Relay</h2><p>监听频道 Deep Link，并把目标 Bot 返回的媒体直接加入用户的 SaveAny 队列。</p></div>
+              </div>
+
+              <form id="relay-form">
+                <input id="relay-id" type="hidden">
+                <div class="field">
+                  <label for="relay-owner">接收用户</label>
+                  <select id="relay-owner" required disabled><option>连接后加载</option></select>
+                  <p class="field-help">使用该用户的默认存储、默认目录、规则和冲突策略；处理状态也发给该用户。</p>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="relay-source">来源频道</label>
+                    <input id="relay-source" required placeholder="例如 @mychannel" autocomplete="off">
+                  </div>
+                  <div class="field">
+                    <label for="relay-target">目标 Bot</label>
+                    <input id="relay-target" required placeholder="例如 @btfffbot" autocomplete="off">
+                  </div>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="relay-timeout">等待超时（秒）</label>
+                    <input id="relay-timeout" type="number" min="1" max="86400" value="900" required>
+                  </div>
+                  <div class="field">
+                    <label for="relay-quiet">媒体静默时间（秒）</label>
+                    <input id="relay-quiet" type="number" min="1" max="300" value="5" required>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="relay-enabled">状态</label>
+                  <select id="relay-enabled"><option value="true" selected>启用</option><option value="false">停用</option></select>
+                </div>
+                <p class="form-note">Userbot 账号必须已加入来源频道。配置保存到数据库并即时生效，无需重启。</p>
+                <div class="relay-actions">
+                  <button class="button" id="relay-submit" type="submit" disabled>保存 Relay</button>
+                  <button class="button secondary" id="relay-reset" type="button" hidden>取消编辑</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="relay-list-title">
+            <div class="panel-body">
+              <div class="panel-heading">
+                <div><h2 id="relay-list-title">Relay 路由</h2><p>每个来源频道与目标 Bot 只能配置一条路由。</p></div>
+                <button class="button secondary small" id="relay-refresh" type="button" disabled>刷新</button>
+              </div>
+              <div class="task-list" id="relay-list">
+                <div class="empty"><span class="empty-mark">⌁</span><strong>先连接 API</strong><p>连接后可新增、编辑、启停或删除 Relay 路由。</p></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="capabilities" aria-labelledby="capability-title">
+        <div class="section-heading">
+          <p class="eyebrow">Project capabilities</p>
+          <h2 id="capability-title">一套队列，多种保存方式</h2>
+          <p>Web 控制台覆盖现有 HTTP API；Telegram Bot 还提供规则、监听聊天、目录与文件名模板等交互能力。</p>
+        </div>
+        <div class="capability-grid">
+          <article class="capability">
+            <span class="capability-icon">↓</span>
+            <h3>多来源抓取</h3>
+            <p>处理文件直链、Telegram 消息、Telegraph 图片、网站解析与视频下载。</p>
+            <div class="tags"><span class="tag">直链</span><span class="tag">Telegram</span><span class="tag">yt-dlp</span><span class="tag">Aria2</span></div>
+          </article>
+          <article class="capability">
+            <span class="capability-icon">◇</span>
+            <h3>七类存储后端</h3>
+            <p>保存到本地、WebDAV、AList、MinIO、S3、Rclone 或 Telegram。</p>
+            <div class="tags"><span class="tag">Local</span><span class="tag">S3</span><span class="tag">WebDAV</span><span class="tag">Rclone</span></div>
+          </article>
+          <article class="capability">
+            <span class="capability-icon">⇄</span>
+            <h3>队列与跨存储传输</h3>
+            <p>统一排队、进度追踪和取消任务；可读存储之间可以直接迁移文件。</p>
+            <div class="tags"><span class="tag">进度</span><span class="tag">取消</span><span class="tag">批量</span><span class="tag">Webhook</span></div>
+          </article>
+          <article class="capability">
+            <span class="capability-icon">⌘</span>
+            <h3>Telegram 自动化</h3>
+            <p>按规则分流文件，监听聊天自动保存，并支持相册、静默模式和多用户授权。</p>
+            <div class="tags"><span class="tag">规则</span><span class="tag">监听</span><span class="tag">多用户</span><span class="tag">相册</span></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>SaveAny-Bot · 内置 Web 控制台</span><span>服务配置仍由 TOML、环境变量或启动参数管理</span></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const API = "/api/v1";
+    const readableStorageTypes = new Set(["local", "webdav", "alist", "rclone"]);
+    const taskMeta = {
+      directlinks: ["直链下载", "下载一个或多个 HTTP / HTTPS 文件直链。"],
+      ytdlp: ["yt-dlp 视频", "通过 yt-dlp 保存支持网站的视频或音频。"],
+      aria2: ["Aria2 下载", "通过已配置的 Aria2 RPC 下载链接、种子或磁力任务。"],
+      parseditem: ["解析器下载", "交给已注册的内置或 JavaScript 解析器处理页面。"],
+      tgfiles: ["Telegram 文件", "从一条或多条 Telegram 消息链接提取文件。"],
+      tphpics: ["Telegraph 图片", "保存 Telegraph 文章中的全部图片。"],
+      transfer: ["存储间传输", "从支持读取的存储复制文件到另一存储。"]
+    };
+    const statusText = {
+      queued: "排队中",
+      running: "运行中",
+      completed: "已完成",
+      failed: "失败",
+      cancelled: "已取消"
+    };
+    const state = { connected: false, token: "", storages: [], tasks: [], users: [], relays: [] };
+
+    const tokenInput = document.querySelector("#api-token");
+    const connectButton = document.querySelector("#connect-button");
+    const connectionStatus = document.querySelector("#connection-status");
+    const taskForm = document.querySelector("#task-form");
+    const taskType = document.querySelector("#task-type");
+    const storage = document.querySelector("#storage");
+    const destinationFields = document.querySelector("#destination-fields");
+    const sourceStorage = document.querySelector("#source-storage");
+    const transferTargetStorage = document.querySelector("#transfer-target-storage");
+    const submitButton = document.querySelector("#submit-button");
+    const refreshButton = document.querySelector("#refresh-button");
+    const taskList = document.querySelector("#task-list");
+    const relayForm = document.querySelector("#relay-form");
+    const relayOwner = document.querySelector("#relay-owner");
+    const relaySubmit = document.querySelector("#relay-submit");
+    const relayReset = document.querySelector("#relay-reset");
+    const relayRefresh = document.querySelector("#relay-refresh");
+    const relayList = document.querySelector("#relay-list");
+    const toast = document.querySelector("#toast");
+    let toastTimer;
+
+    function showToast(message, isError = false) {
+      clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.className = `toast show${isError ? " error" : ""}`;
+      toastTimer = setTimeout(() => { toast.className = "toast"; }, 3200);
+    }
+
+    function setConnection(text, kind = "") {
+      connectionStatus.textContent = text;
+      connectionStatus.className = `status${kind ? ` ${kind}` : ""}`;
+    }
+
+    async function request(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      headers.set("Authorization", `Bearer ${state.token}`);
+      if (options.body) headers.set("Content-Type", "application/json");
+      const response = await fetch(`${API}${path}`, { ...options, headers });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          state.connected = false;
+          submitButton.disabled = true;
+          refreshButton.disabled = true;
+          relaySubmit.disabled = true;
+          relayRefresh.disabled = true;
+          setConnection("令牌无效", "error");
+        }
+        throw new Error(data.message || `请求失败（${response.status}）`);
+      }
+      return data;
+    }
+
+    function fillSelect(select, items, emptyText = "暂无可用项") {
+      select.replaceChildren();
+      if (!items.length) {
+        const option = new Option(emptyText, "");
+        option.disabled = true;
+        option.selected = true;
+        select.add(option);
+        return;
+      }
+      for (const item of items) select.add(new Option(item.label, item.value));
+    }
+
+    function loadControls(types) {
+      const supportedTypes = types.filter(type => taskMeta[type]);
+      fillSelect(taskType, supportedTypes.map(type => ({ value: type, label: taskMeta[type][0] })), "暂无任务类型");
+
+      const storageOptions = state.storages.map(item => ({ value: item.name, label: `${item.name} · ${item.type}` }));
+      const readableOptions = state.storages
+        .filter(item => readableStorageTypes.has(item.type))
+        .map(item => ({ value: item.name, label: `${item.name} · ${item.type}` }));
+      fillSelect(storage, storageOptions, "暂无已启用存储");
+      fillSelect(sourceStorage, readableOptions, "暂无可读取的存储");
+      fillSelect(transferTargetStorage, storageOptions, "暂无已启用存储");
+
+      const enabled = supportedTypes.length > 0 && storageOptions.length > 0;
+      taskType.disabled = !enabled;
+      storage.disabled = !enabled;
+      sourceStorage.disabled = !enabled;
+      transferTargetStorage.disabled = !enabled;
+      submitButton.disabled = !enabled;
+      updateTaskFields();
+    }
+
+    function loadRelayControls() {
+      const users = state.users.map(user => ({
+        value: String(user.id),
+        label: `${user.chat_id} · ${user.default_storage || "未设置默认存储"}${user.ready ? "" : "（不可用）"}`
+      }));
+      fillSelect(relayOwner, users, "暂无 SaveAny 用户");
+      relayOwner.disabled = !state.connected || !users.length;
+      relaySubmit.disabled = !state.connected || !state.users.some(user => user.ready);
+    }
+
+    function updateTaskFields() {
+      const type = taskType.value;
+      document.querySelector("#task-description").textContent = taskMeta[type]?.[1] || "选择任务类型。";
+      for (const group of document.querySelectorAll("[data-types]")) {
+        const active = group.dataset.types.split(" ").includes(type);
+        group.hidden = !active;
+        group.disabled = !active;
+      }
+      const transfer = type === "transfer";
+      destinationFields.hidden = transfer;
+      destinationFields.disabled = transfer;
+      storage.disabled = transfer || !state.connected;
+    }
+
+    function lines(selector) {
+      return document.querySelector(selector).value.split("\n").map(value => value.trim()).filter(Boolean);
+    }
+
+    function buildParams(type) {
+      switch (type) {
+        case "directlinks": return { urls: lines("#urls") };
+        case "ytdlp": return { urls: lines("#urls"), flags: lines("#ytdlp-flags") };
+        case "aria2": {
+          const raw = document.querySelector("#aria2-options").value.trim();
+          const options = raw ? JSON.parse(raw) : {};
+          if (!options || Array.isArray(options) || typeof options !== "object") throw new Error("Aria2 选项必须是 JSON 对象");
+          return { urls: lines("#urls"), options };
+        }
+        case "parseditem": return { url: document.querySelector("#parsed-url").value.trim() };
+        case "tgfiles": return { message_links: lines("#message-links") };
+        case "tphpics": return { telegraph_url: document.querySelector("#telegraph-url").value.trim() };
+        case "transfer": return {
+          source_storage: sourceStorage.value,
+          source_path: document.querySelector("#source-path").value.trim(),
+          target_storage: transferTargetStorage.value,
+          target_path: document.querySelector("#transfer-target-path").value.trim()
+        };
+        default: throw new Error("不支持的任务类型");
+      }
+    }
+
+    function element(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("zh-CN", { hour12: false });
+    }
+
+    function updateStats() {
+      const active = state.tasks.filter(task => task.status === "queued" || task.status === "running").length;
+      const completed = state.tasks.filter(task => task.status === "completed").length;
+      const failed = state.tasks.filter(task => task.status === "failed" || task.status === "cancelled").length;
+      document.querySelector("#stat-total").textContent = state.tasks.length;
+      document.querySelector("#stat-active").textContent = active;
+      document.querySelector("#stat-completed").textContent = completed;
+      document.querySelector("#stat-failed").textContent = failed;
+    }
+
+    function renderTasks() {
+      taskList.replaceChildren();
+      updateStats();
+      if (!state.tasks.length) {
+        const empty = element("div", "empty");
+        empty.append(element("span", "empty-mark", "✓"), element("strong", "", "还没有 API 任务"), element("p", "", "从左侧创建一个任务，它的状态和进度会出现在这里。"));
+        taskList.append(empty);
+        return;
+      }
+
+      const tasks = [...state.tasks].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      for (const task of tasks) {
+        const card = element("article", "task-card");
+        const top = element("div", "task-top");
+        const title = element("div", "task-title");
+        title.append(element("strong", "", task.title || taskMeta[task.type]?.[0] || task.type), element("code", "", task.task_id));
+        const badge = element("span", `badge ${statusText[task.status] ? task.status : ""}`, statusText[task.status] || task.status);
+        top.append(title, badge);
+        card.append(top);
+
+        const meta = element("div", "task-meta");
+        meta.append(element("span", "", `来源：${taskMeta[task.type]?.[0] || task.type}`), element("span", "", `存储：${task.storage || "—"}`), element("span", "", `路径：${task.path || "/"}`));
+        card.append(meta);
+
+        if (task.progress) {
+          const percent = Math.max(0, Math.min(100, Number(task.progress.percent) || 0));
+          const progress = element("div", "progress");
+          const bar = element("span");
+          bar.style.width = `${percent}%`;
+          progress.append(bar);
+          progress.setAttribute("role", "progressbar");
+          progress.setAttribute("aria-label", "任务进度");
+          progress.setAttribute("aria-valuenow", String(Math.round(percent)));
+          progress.setAttribute("aria-valuemin", "0");
+          progress.setAttribute("aria-valuemax", "100");
+          card.append(progress);
+        }
+
+        if (task.error) card.append(element("p", "task-error", task.error));
+
+        const bottom = element("div", "task-bottom");
+        const progressText = task.progress ? `${Math.round(Number(task.progress.percent) || 0)}% · ${Number(task.progress.speed_mbps || 0).toFixed(1)} MB/s` : formatDate(task.updated_at || task.created_at);
+        bottom.append(element("small", "", progressText));
+        if (task.status === "queued" || task.status === "running") {
+          const cancel = element("button", "button danger small", "取消任务");
+          cancel.type = "button";
+          cancel.addEventListener("click", () => cancelTask(task.task_id));
+          bottom.append(cancel);
+        }
+        card.append(bottom);
+        taskList.append(card);
+      }
+    }
+
+    function relayBody(relay, enabled = relay.enabled) {
+      return {
+        user_id: relay.user_id,
+        source_chat: relay.source_chat,
+        target_bot: relay.target_bot,
+        enabled,
+        timeout_seconds: relay.timeout_seconds,
+        quiet_seconds: relay.quiet_seconds
+      };
+    }
+
+    function resetRelayForm() {
+      relayForm.reset();
+      document.querySelector("#relay-id").value = "";
+      document.querySelector("#relay-title").textContent = "Bot Relay";
+      relayReset.hidden = true;
+    }
+
+    function editRelay(relay) {
+      document.querySelector("#relay-id").value = relay.id;
+      relayOwner.value = String(relay.user_id);
+      document.querySelector("#relay-source").value = `@${relay.source_chat}`;
+      document.querySelector("#relay-target").value = `@${relay.target_bot}`;
+      document.querySelector("#relay-timeout").value = relay.timeout_seconds;
+      document.querySelector("#relay-quiet").value = relay.quiet_seconds;
+      document.querySelector("#relay-enabled").value = String(relay.enabled);
+      document.querySelector("#relay-title").textContent = "编辑 Bot Relay";
+      relayReset.hidden = false;
+      relayForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function renderRelays() {
+      relayList.replaceChildren();
+      if (!state.relays.length) {
+        const empty = element("div", "empty");
+        empty.append(element("span", "empty-mark", "⌁"), element("strong", "", "还没有 Relay 路由"), element("p", "", "在左侧配置来源频道、目标 Bot 和接收用户。"));
+        relayList.append(empty);
+        return;
+      }
+
+      for (const relay of state.relays) {
+        const owner = state.users.find(user => user.id === relay.user_id);
+        const card = element("article", "task-card");
+        const top = element("div", "task-top");
+        const title = element("div", "task-title");
+        title.append(element("strong", "", `@${relay.source_chat} → @${relay.target_bot}`), element("code", "", `Relay #${relay.id}`));
+        top.append(title, element("span", `badge ${relay.enabled ? "completed" : "cancelled"}`, relay.enabled ? "已启用" : "已停用"));
+        card.append(top);
+
+        const meta = element("div", "task-meta");
+        meta.append(
+          element("span", "", `用户：${owner?.chat_id || relay.user_id}`),
+          element("span", "", `等待：${relay.timeout_seconds} 秒`),
+          element("span", "", `静默：${relay.quiet_seconds} 秒`)
+        );
+        card.append(meta);
+
+        const actions = element("div", "task-bottom");
+        const edit = element("button", "button secondary small", "编辑");
+        edit.type = "button";
+        edit.addEventListener("click", () => editRelay(relay));
+        const toggle = element("button", "button secondary small", relay.enabled ? "停用" : "启用");
+        toggle.type = "button";
+        toggle.addEventListener("click", () => updateRelay(relay.id, relayBody(relay, !relay.enabled)));
+        const remove = element("button", "button danger small", "删除");
+        remove.type = "button";
+        remove.addEventListener("click", () => deleteRelay(relay.id));
+        actions.append(edit, toggle, remove);
+        card.append(actions);
+        relayList.append(card);
+      }
+    }
+
+    async function refreshTasks(showSuccess = false) {
+      const data = await request("/tasks");
+      state.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      renderTasks();
+      if (showSuccess) showToast("任务状态已刷新");
+    }
+
+    async function refreshRelays(showSuccess = false) {
+      const data = await request("/bot-relays");
+      state.relays = Array.isArray(data.bot_relays) ? data.bot_relays : [];
+      renderRelays();
+      if (showSuccess) showToast("Relay 路由已刷新");
+    }
+
+    async function connect() {
+      const token = tokenInput.value.trim();
+      if (!token) {
+        showToast("请先输入 API Token", true);
+        tokenInput.focus();
+        return;
+      }
+
+      state.token = token;
+      connectButton.disabled = true;
+      connectButton.textContent = "连接中…";
+      setConnection("连接中");
+      try {
+        const [storageData, typeData, taskData, userData, relayData] = await Promise.all([
+          request("/storages"),
+          request("/task-types"),
+          request("/tasks"),
+          request("/users"),
+          request("/bot-relays")
+        ]);
+        state.storages = Array.isArray(storageData.storages) ? storageData.storages : [];
+        state.tasks = Array.isArray(taskData.tasks) ? taskData.tasks : [];
+        state.users = Array.isArray(userData.users) ? userData.users : [];
+        state.relays = Array.isArray(relayData.bot_relays) ? relayData.bot_relays : [];
+        state.connected = true;
+        try { sessionStorage.setItem("saveany-api-token", token); } catch (_) {}
+        loadControls(Array.isArray(typeData.types) ? typeData.types : []);
+        loadRelayControls();
+        renderTasks();
+        renderRelays();
+        refreshButton.disabled = false;
+        relayRefresh.disabled = false;
+        setConnection("已连接", "ok");
+        showToast(`已连接，发现 ${state.storages.length} 个存储`);
+      } catch (error) {
+        state.connected = false;
+        submitButton.disabled = true;
+        refreshButton.disabled = true;
+        relaySubmit.disabled = true;
+        relayRefresh.disabled = true;
+        setConnection("连接失败", "error");
+        showToast(error.message, true);
+      } finally {
+        connectButton.disabled = false;
+        connectButton.textContent = "连接";
+      }
+    }
+
+    async function cancelTask(taskID) {
+      if (!window.confirm("确定取消这个任务吗？")) return;
+      try {
+        await request(`/tasks/${encodeURIComponent(taskID)}`, { method: "DELETE" });
+        await refreshTasks();
+        showToast("任务已取消");
+      } catch (error) {
+        showToast(error.message, true);
+      }
+    }
+
+    async function updateRelay(id, body) {
+      try {
+        await request(`/bot-relays/${id}`, { method: "PUT", body: JSON.stringify(body) });
+        await refreshRelays();
+        resetRelayForm();
+        showToast("Relay 配置已更新");
+      } catch (error) {
+        showToast(error.message, true);
+      }
+    }
+
+    async function deleteRelay(id) {
+      if (!window.confirm("确定删除这条 Relay 路由吗？")) return;
+      try {
+        await request(`/bot-relays/${id}`, { method: "DELETE" });
+        await refreshRelays();
+        resetRelayForm();
+        showToast("Relay 路由已删除");
+      } catch (error) {
+        showToast(error.message, true);
+      }
+    }
+
+    taskForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!state.connected) {
+        showToast("请先连接 API", true);
+        return;
+      }
+      if (!taskForm.reportValidity()) return;
+
+      try {
+        const type = taskType.value;
+        const params = buildParams(type);
+        const transfer = type === "transfer";
+        const body = {
+          type,
+          storage: transfer ? params.target_storage : storage.value,
+          path: transfer ? params.target_path : document.querySelector("#target-path").value.trim(),
+          params
+        };
+        const webhook = document.querySelector("#webhook").value.trim();
+        if (webhook) body.webhook = webhook;
+
+        submitButton.disabled = true;
+        submitButton.textContent = "正在提交…";
+        const created = await request("/tasks", { method: "POST", body: JSON.stringify(body) });
+        await refreshTasks();
+        showToast(`任务 ${created.task_id} 已进入队列`);
+      } catch (error) {
+        showToast(error instanceof SyntaxError ? "Aria2 选项不是有效的 JSON" : error.message, true);
+      } finally {
+        submitButton.disabled = !state.connected;
+        submitButton.textContent = "加入任务队列";
+      }
+    });
+
+    relayForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!state.connected || !relayForm.reportValidity()) return;
+      const id = document.querySelector("#relay-id").value;
+      const body = {
+        user_id: Number(relayOwner.value),
+        source_chat: document.querySelector("#relay-source").value.trim(),
+        target_bot: document.querySelector("#relay-target").value.trim(),
+        enabled: document.querySelector("#relay-enabled").value === "true",
+        timeout_seconds: Number(document.querySelector("#relay-timeout").value),
+        quiet_seconds: Number(document.querySelector("#relay-quiet").value)
+      };
+      relaySubmit.disabled = true;
+      relaySubmit.textContent = "正在保存…";
+      try {
+        await request(id ? `/bot-relays/${id}` : "/bot-relays", { method: id ? "PUT" : "POST", body: JSON.stringify(body) });
+        await refreshRelays();
+        resetRelayForm();
+        showToast(id ? "Relay 配置已更新" : "Relay 路由已创建");
+      } catch (error) {
+        showToast(error.message, true);
+      } finally {
+        relaySubmit.disabled = !state.connected || !state.users.some(user => user.ready);
+        relaySubmit.textContent = "保存 Relay";
+      }
+    });
+
+    connectButton.addEventListener("click", connect);
+    tokenInput.addEventListener("keydown", event => { if (event.key === "Enter") connect(); });
+    tokenInput.addEventListener("input", () => {
+      if (state.connected && tokenInput.value.trim() !== state.token) {
+        state.connected = false;
+        submitButton.disabled = true;
+        refreshButton.disabled = true;
+        relaySubmit.disabled = true;
+        relayRefresh.disabled = true;
+        setConnection("待重新连接");
+      }
+    });
+    taskType.addEventListener("change", updateTaskFields);
+    refreshButton.addEventListener("click", () => refreshTasks(true).catch(error => showToast(error.message, true)));
+    relayRefresh.addEventListener("click", () => refreshRelays(true).catch(error => showToast(error.message, true)));
+    relayReset.addEventListener("click", resetRelayForm);
+
+    setInterval(() => {
+      if (state.connected && document.visibilityState === "visible") refreshTasks().catch(() => {});
+    }, 5000);
+
+    try {
+      const savedToken = sessionStorage.getItem("saveany-api-token");
+      if (savedToken) {
+        tokenInput.value = savedToken;
+        connect();
+      }
+    } catch (_) {}
+  </script>
+</body>
+</html>

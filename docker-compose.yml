@@ -1,6 +1,6 @@
 services:
   saveany-bot:
-    image: ghcr.io/krau/saveany-bot:latest
+    image: ghcr.io/acecandy/saveany-bot:latest
     container_name: saveany-bot
     restart: unless-stopped
     volumes:

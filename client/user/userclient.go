@@ -95,6 +95,7 @@ func Login(ctx context.Context) (*gotgproto.Client, error) {
 			return nil, r.err
 		}
 		uc = r.client
+		uc.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, dispatchRelayMessage))
 		uc.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.Media, func(ctx *ext.Context, u *ext.Update) error {
 			switch u.UpdateClass.(type) {
 			case *tg.UpdateEditChannelMessage, *tg.UpdateEditMessage, *tg.UpdateDeleteChannelMessages, *tg.UpdateDeleteMessages:

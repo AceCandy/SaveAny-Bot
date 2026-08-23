@@ -351,6 +351,12 @@ bot:
     storage:
       info_filename_prefix: "文件名: "
       info_prompt_select_storage: "\n请选择存储位置"
+    relay:
+      queued: "<b>🔗 Bot Relay 已排队</b>\n\n目标：<code>@{{.Bot}}</code>\n参数：<code>{{.Payload}}</code>\n队列位置：<code>{{.Position}}</code>"
+      waiting: "<b>⏳ Bot Relay 等待回复</b>\n\n已向 <code>@{{.Bot}}</code> 发送 <code>/start {{.Payload}}</code>"
+      pending: "<b>⌛ Bot Relay Pending Queue</b>\n\n正在等待 <code>@{{.Bot}}</code> 返回媒体"
+      received: "<b>📥 Bot Relay 正在收集媒体</b>\n\n已收到：<code>{{.Count}}</code> 个文件"
+      failed: "<b>❌ Bot Relay 失败</b>\n\n原因：<code>{{.Reason}}</code>"
     progress:
       batch_status_header: "<b>📦 正在处理</b>\n\n文件：<code>{{.Total}}</code> ｜ 总大小：<code>{{.TotalSize}}</code>\n状态：✅ <code>{{.Completed}}</code> ｜ 📥 <code>{{.Downloaded}}</code> ｜ ⏳ <code>{{.Waiting}}</code>\n总速度：⬇️ <code>{{.DownloadSpeed}}</code> ｜ ⬆️ <code>{{.UploadSpeed}}</code>"
       batch_item_downloading: "<blockquote><b>⬇️ {{.Index}}/{{.Total}} 下载中</b>\n<code>{{.Name}}</code>\n{{.Bar}} <code>{{.Progress}}%</code>\n速度：<code>{{.Speed}}</code>\n大小：<code>{{.Current}}</code> / <code>{{.Size}}</code></blockquote>"
