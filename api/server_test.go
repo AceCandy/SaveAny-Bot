@@ -11,7 +11,7 @@ func TestDashboardHandler(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	recorder := httptest.NewRecorder()
 
-	NewServer(t.Context()).httpServer.Handler.ServeHTTP(recorder, req)
+	NewServer(t.Context(), nil).httpServer.Handler.ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
@@ -22,7 +22,7 @@ func TestDashboardHandler(t *testing.T) {
 	if got := recorder.Header().Get("Content-Security-Policy"); got == "" {
 		t.Fatal("expected a content security policy")
 	}
-	if body := recorder.Body.String(); !strings.Contains(body, "SaveAny") || !strings.Contains(body, `id="task-form"`) || !strings.Contains(body, `id="relay-form"`) {
+	if body := recorder.Body.String(); !strings.Contains(body, "SaveAny") || !strings.Contains(body, `id="task-form"`) || !strings.Contains(body, `id="relay-form"`) || !strings.Contains(body, `id="config-form"`) {
 		t.Fatal("dashboard content is incomplete")
 	}
 }

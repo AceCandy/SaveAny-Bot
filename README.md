@@ -30,6 +30,7 @@
 - Integrate with yt-dlp to download and save media from 1000+ websites
 - Aria2 integration to download files from URLs/magnets and save to storages
 - Write JS parser plugins to save files from almost any website
+- Built-in Web dashboard for tasks, Bot Relay, and global TOML configuration
 - Storage backends:
   - Alist
   - S3
@@ -61,16 +62,25 @@ base_path = "./downloads"
 id = 114514 # Your Telegram account id
 storages = []
 blacklist = true
+
+[api]
+enable = true
+host = "0.0.0.0"
+port = 8080
+token = "replace-with-a-random-admin-token"
 ```
 
 Run Save Any Bot with Docker:
 
 ```bash
-docker run -d --name saveany-bot \
+docker run -d --name saveany-bot --restart unless-stopped \
+    -p 8080:8080 \
     -v ./config.toml:/app/config.toml \
     -v ./downloads:/app/downloads \
     ghcr.io/acecandy/saveany-bot:latest
 ```
+
+Open `http://<server-address>:8080/` to use the Web dashboard. Local changes are written back to the mounted `config.toml`, then the container restarts. Environment variables and CLI flags still take precedence.
 
 Please [**read the docs**](https://sabot.unv.app/en/) for more configuration options and usage.
 

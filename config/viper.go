@@ -76,11 +76,8 @@ func Init(ctx context.Context, configFile ...string) error {
 	userIDs = nil
 	userStorages = make(map[int64][]string)
 
-	viper.SetConfigType("toml")
-	viper.SetEnvPrefix("SAVEANY")
-	viper.AutomaticEnv()
-	replacer := strings.NewReplacer(".", "_")
-	viper.SetEnvKeyReplacer(replacer)
+	v := viper.GetViper()
+	setupViper(v)
 
 	// 如果指定了配置文件路径，则使用指定的配置文件
 	// 配置文件支持传入一个 http(s) URL 地址
@@ -98,19 +95,69 @@ func Init(ctx context.Context, configFile ...string) error {
 			if resp.StatusCode != http.StatusOK {
 				return fmt.Errorf("failed to fetch remote config file: status code %d", resp.StatusCode)
 			}
-			if err := viper.ReadConfig(resp.Body); err != nil {
+			if err := v.ReadConfig(resp.Body); err != nil {
 				return fmt.Errorf("failed to read remote config file: %w", err)
 			}
 			loadedFromURL = true
 		} else {
-			viper.SetConfigFile(cfg)
+			v.SetConfigFile(cfg)
 		}
 	} else {
-		viper.SetConfigName("config")
-		viper.AddConfigPath(".")
-		viper.AddConfigPath("/etc/saveany/")
+		v.SetConfigName("config")
+		v.AddConfigPath(".")
+		v.AddConfigPath("/etc/saveany/")
 	}
 
+	setDefaults(v)
+
+	if !loadedFromURL {
+		if err := v.ReadInConfig(); err != nil {
+			logger.Errorf("Error reading config file: %v", err)
+			return err
+		}
+	}
+
+	decoded, err := decodeConfig(v)
+	if err != nil {
+		logger.Errorf("Error decoding config file: %v", err)
+		return err
+	}
+	*cfg = *decoded
+
+	for _, storage := range cfg.Storages {
+		storages = append(storages, storage.GetName())
+	}
+	for _, user := range cfg.Users {
+		userIDs = append(userIDs, user.ID)
+		if user.Blacklist {
+			userStorages[user.ID] = slice.Compact(slice.Difference(storages, user.Storages))
+		} else {
+			userStorages[user.ID] = user.Storages
+		}
+	}
+	if cfg.Proxy != "" {
+		transport, err := newProxyTransport(cfg.Proxy)
+		if err != nil {
+			return fmt.Errorf("failed to create proxy transport: %w", err)
+		}
+		http.DefaultTransport = transport
+	}
+
+	source := v.ConfigFileUsed()
+	if loadedFromURL {
+		source = configFile[0]
+	}
+	return setConfigSource(source, loadedFromURL)
+}
+
+func setupViper(v *viper.Viper) {
+	v.SetConfigType("toml")
+	v.SetEnvPrefix("SAVEANY")
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+}
+
+func setDefaults(v *viper.Viper) {
 	defaultConfigs := map[string]any{
 		// 基础配置
 		"lang":      "zh-Hans",
@@ -149,63 +196,46 @@ func Init(ctx context.Context, configFile ...string) error {
 	}
 
 	for key, value := range defaultConfigs {
-		viper.SetDefault(key, value)
+		v.SetDefault(key, value)
+	}
+}
+
+func decodeConfig(v *viper.Viper) (*Config, error) {
+	var decoded Config
+	if err := v.Unmarshal(&decoded); err != nil {
+		return nil, err
 	}
 
-	if !loadedFromURL {
-		if err := viper.ReadInConfig(); err != nil {
-			logger.Errorf("Error reading config file: %v", err)
-			return err
-		}
-	}
-
-	if err := viper.Unmarshal(cfg); err != nil {
-		logger.Errorf("Error unmarshalling config file: %v", err)
-		return err
-	}
-
-	storagesConfig, err := storage.LoadStorageConfigs(viper.GetViper())
+	storagesConfig, err := storage.LoadStorageConfigs(v)
 	if err != nil {
-		return fmt.Errorf("error loading storage configs: %w", err)
+		return nil, fmt.Errorf("error loading storage configs: %w", err)
 	}
-	cfg.Storages = storagesConfig
+	decoded.Storages = storagesConfig
 
 	storageNames := make(map[string]struct{})
-	for _, storage := range cfg.Storages {
+	for _, storage := range decoded.Storages {
 		if _, ok := storageNames[storage.GetName()]; ok {
-			return fmt.Errorf("duplicate storage name: %s", storage.GetName())
+			return nil, fmt.Errorf("duplicate storage name: %s", storage.GetName())
 		}
 		storageNames[storage.GetName()] = struct{}{}
 	}
 
-	if cfg.Workers < 1 {
-		cfg.Workers = 1
+	if decoded.Workers < 1 {
+		decoded.Workers = 1
 	}
-	if cfg.Threads < 1 {
-		cfg.Threads = 1
+	if decoded.Threads < 1 {
+		decoded.Threads = 1
 	}
-	if cfg.Retry < 1 {
-		cfg.Retry = 1
+	if decoded.Retry < 1 {
+		decoded.Retry = 1
 	}
 
-	for _, storage := range cfg.Storages {
-		storages = append(storages, storage.GetName())
-	}
-	for _, user := range cfg.Users {
-		userIDs = append(userIDs, user.ID)
-		if user.Blacklist {
-			userStorages[user.ID] = slice.Compact(slice.Difference(storages, user.Storages))
-		} else {
-			userStorages[user.ID] = user.Storages
+	if decoded.Proxy != "" {
+		if _, err := newProxyTransport(decoded.Proxy); err != nil {
+			return nil, fmt.Errorf("failed to create proxy transport: %w", err)
 		}
 	}
-	if cfg.Proxy != "" {
-		http.DefaultTransport, err = newProxyTransport(cfg.Proxy)
-		if err != nil {
-			return fmt.Errorf("failed to create proxy transport: %w", err)
-		}
-	}
-	return nil
+	return &decoded, nil
 }
 
 func newProxyTransport(proxyStr string) (*http.Transport, error) {

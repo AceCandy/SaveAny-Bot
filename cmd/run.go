@@ -47,7 +47,7 @@ func Run(cmd *cobra.Command, _ []string) {
 	}
 	logger.SetLevel(level)
 
-	exitChan, err := initAll(ctx)
+	exitChan, err := initAll(ctx, cancel)
 	if err != nil {
 		logger.Fatal("Init failed", "error", err)
 	}
@@ -65,7 +65,7 @@ func Run(cmd *cobra.Command, _ []string) {
 	cleanCache()
 }
 
-func initAll(ctx context.Context) (<-chan struct{}, error) {
+func initAll(ctx context.Context, restart func()) (<-chan struct{}, error) {
 	cache.Init()
 	logger := log.FromContext(ctx)
 	i18n.Init(config.C().Lang)
@@ -87,7 +87,7 @@ func initAll(ctx context.Context) (<-chan struct{}, error) {
 			logger.Fatal("User login failed", "error", err)
 		}
 	}
-	if err := api.Start(ctx); err != nil {
+	if err := api.Start(ctx, restart); err != nil {
 		logger.Fatal("Failed to start API server", "error", err)
 	}
 	return bot.Init(ctx), nil

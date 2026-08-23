@@ -28,6 +28,7 @@
 - 集成 yt-dlp, 从所支持的网站下载并转存媒体文件
 - 集成 Aria2, 支持直链/磁力下载和转存
 - 使用 js 编写解析器插件以转存任意网站的文件
+- 内置 Web 控制台，可管理任务、Bot Relay 和全局 TOML 配置
 - 存储端支持:
   - Alist
   - S3
@@ -58,16 +59,25 @@ base_path = "./downloads"
 id = 114514 # 你的 Telegram 账号 id
 storages = []
 blacklist = true
+
+[api]
+enable = true
+host = "0.0.0.0"
+port = 8080
+token = "请替换为随机管理令牌"
 ```
 
 使用 Docker 运行 Save Any Bot:
 
 ```bash
-docker run -d --name saveany-bot \
+docker run -d --name saveany-bot --restart unless-stopped \
+    -p 8080:8080 \
     -v ./config.toml:/app/config.toml \
     -v ./downloads:/app/downloads \
     ghcr.io/acecandy/saveany-bot:latest
 ```
+
+访问 `http://服务器地址:8080/` 使用 Web 控制台。本地配置会写回挂载的 `config.toml`；保存后容器自动重启。环境变量和 CLI 参数仍具有更高优先级。
 
 请 [**查看文档**](https://sabot.unv.app/) 以获取更多配置选项和使用方法.
 

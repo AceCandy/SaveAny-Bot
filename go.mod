@@ -20,6 +20,7 @@ require (
 	github.com/lrstanley/go-ytdlp v1.3.5
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/playwright-community/playwright-go v0.6000.0
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/rs/xid v1.6.0
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
@@ -129,7 +130,6 @@ require (
 	github.com/ncruces/go-sqlite3 v0.35.3 // indirect
 	github.com/ncruces/go-sqlite3/gormlite v0.34.0
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
-	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect

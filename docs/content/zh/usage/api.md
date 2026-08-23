@@ -48,13 +48,17 @@ Authorization: Bearer <your-token>
 
 ## Web 控制台
 
-API 启动后，访问 `http://<服务器地址>:<端口>/` 即可打开内置控制台。输入 API Token 后，可以选择任务类型和存储、创建任务、查看进度、取消任务，以及管理 Bot Relay 路由。
+API 启动后，访问 `http://<服务器地址>:<端口>/` 即可打开内置控制台。输入 API Token 后，可以选择任务类型和存储、创建任务、查看进度、取消任务、管理 Bot Relay 路由，以及编辑全局 TOML 配置。
 
 {{< hint info >}}
-Token 仅保存在当前浏览器会话的 `sessionStorage` 中。控制台不修改服务端 TOML、环境变量或启动参数；这些配置仍需在服务端调整并重启后生效。
+Token 仅保存在当前浏览器会话的 `sessionStorage` 中。全局配置中的 Token、密码和密钥会被唯一占位符隐藏；保留占位符即可保留原值，也可以直接填入新值。
 {{< /hint >}}
 
 Bot Relay 路由独立保存在数据库中，新增、编辑、启停和删除会即时生效。使用前需启用 Userbot，并确保 Userbot 账号已加入来源频道；接收用户还必须已配置可用的默认存储。
+
+本地配置保存后会实际写回当前 `config.toml`；使用 Docker 单文件挂载时，宿主机文件也会同步变化。HTTP(S) 配置源只读。环境变量和 CLI 参数仍高于 TOML，因此被覆盖的字段即使写入文件，也不会成为当前有效值。
+
+保存会中断当前任务并退出进程。Docker Compose 的 `restart: unless-stopped` 或其他外部 supervisor 会重新启动服务并加载新配置；没有 supervisor 时，进程会保持停止。
 
 ## 错误响应格式
 
@@ -158,6 +162,30 @@ Bot Relay 路由独立保存在数据库中，新增、编辑、启停和删除�
 ### PUT/DELETE /api/v1/bot-relays/:id — 更新或删除 Relay
 
 `PUT` 请求体与新增接口相同。配置修改后，频道中新的 Deep Link 会立即使用最新配置。
+
+---
+
+### GET/PUT /api/v1/config — 读取或保存全局配置
+
+`GET` 返回当前配置来源、只读状态和已脱敏的 TOML：
+
+```json
+{
+  "source": "/app/config.toml",
+  "read_only": false,
+  "content": "workers = 3\n..."
+}
+```
+
+`PUT` 接收完整 TOML。服务会恢复未修改的密钥占位符、校验配置、写回当前本地文件，然后退出以便 supervisor 重启：
+
+```json
+{
+  "content": "workers = 4\n..."
+}
+```
+
+远程 HTTP(S) 配置源不能通过此接口保存。
 
 ---
 

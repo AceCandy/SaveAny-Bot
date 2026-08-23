@@ -48,13 +48,17 @@ On authentication failure, the server returns `401`:
 
 ## Web Dashboard
 
-After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. Enter the API token to select a task type and storage, create tasks, monitor progress, cancel tasks, and manage Bot Relay routes.
+After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. Enter the API token to select a task type and storage, create tasks, monitor progress, cancel tasks, manage Bot Relay routes, and edit the global TOML configuration.
 
 {{< hint info >}}
-The token is stored only in the current browser session's `sessionStorage`. The dashboard does not modify server-side TOML, environment variables, or command-line flags; change those on the server and restart for them to take effect.
+The token is stored only in the current browser session's `sessionStorage`. Tokens, passwords, and keys in the global configuration are hidden behind unique placeholders. Keep a placeholder to preserve its original value, or replace it with a new value.
 {{< /hint >}}
 
 Bot Relay routes are stored separately in the database, so create, edit, enable/disable, and delete operations take effect immediately. Enable Userbot first and ensure its account has joined the source channel. The receiving SaveAny user must also have an available default storage.
+
+Saving a local configuration writes the active `config.toml` file. With a Docker single-file bind mount, the host file changes as well. HTTP(S) configuration sources are read-only. Environment variables and CLI flags still override TOML, so an overridden file value will not become the effective runtime value.
+
+Saving interrupts current tasks and exits the process. Docker Compose's `restart: unless-stopped` or another external supervisor restarts the service with the new configuration. Without a supervisor, the process remains stopped.
 
 ## Error Response Format
 
@@ -158,6 +162,30 @@ The source must be a Telegram channel and the target must be a bot. `timeout_sec
 ### PUT/DELETE /api/v1/bot-relays/:id — Update or Delete a Relay
 
 `PUT` uses the same request body as the create endpoint. New channel Deep Links use the updated route immediately.
+
+---
+
+### GET/PUT /api/v1/config — Read or Save Global Configuration
+
+`GET` returns the current source, read-only state, and redacted TOML:
+
+```json
+{
+  "source": "/app/config.toml",
+  "read_only": false,
+  "content": "workers = 3\n..."
+}
+```
+
+`PUT` accepts the complete TOML document. The service restores unchanged secret placeholders, validates the configuration, writes the active local file, and exits so the supervisor can restart it:
+
+```json
+{
+  "content": "workers = 4\n..."
+}
+```
+
+Remote HTTP(S) configuration sources cannot be saved through this endpoint.
 
 ---
 

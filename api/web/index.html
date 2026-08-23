@@ -177,6 +177,9 @@
 	.relay-section { padding: 18px 0 0; }
 	.relay-actions { display: flex; gap: 10px; }
 	.relay-actions .button { flex: 1; }
+	.config-section { padding: 18px 0 0; }
+	.config-editor { min-height: 560px; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 13px; tab-size: 2; }
+	.config-source { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
 
     .task-list { display: grid; gap: 11px; }
     .task-card { padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: rgba(4, 16, 11, .56); }
@@ -474,11 +477,34 @@
         </div>
       </section>
 
+      <section class="config-section" aria-labelledby="config-title">
+        <section class="panel">
+          <div class="panel-body">
+            <div class="panel-heading">
+              <div><h2 id="config-title">全局配置</h2><p>直接编辑当前本地 TOML；保存前会校验，成功后服务自动重启并加载新配置。</p></div>
+            </div>
+            <form id="config-form">
+              <div class="field">
+                <label for="config-source">配置来源</label>
+                <input class="config-source" id="config-source" readonly value="连接后加载">
+              </div>
+              <div class="field">
+                <label for="config-content">config.toml</label>
+                <textarea class="config-editor" id="config-content" required disabled spellcheck="false" placeholder="连接后加载当前配置"></textarea>
+                <p class="field-help" id="config-note">Token、密码和密钥会显示为 __SAVEANY_REDACTED_*__；保持该值即可保留原密钥，也可以直接填入新值。</p>
+              </div>
+              <p class="form-note">环境变量和 CLI 参数优先级高于 TOML；被覆盖的字段即使写入文件，也不会成为当前有效值。</p>
+              <button class="button submit" id="config-save" type="submit" disabled>保存并重启</button>
+            </form>
+          </div>
+        </section>
+      </section>
+
       <section class="capabilities" aria-labelledby="capability-title">
         <div class="section-heading">
           <p class="eyebrow">Project capabilities</p>
           <h2 id="capability-title">一套队列，多种保存方式</h2>
-          <p>Web 控制台覆盖现有 HTTP API；Telegram Bot 还提供规则、监听聊天、目录与文件名模板等交互能力。</p>
+          <p>Web 控制台覆盖 HTTP API、Bot Relay 与全局 TOML 配置；Telegram Bot 继续提供规则、监听聊天、目录与文件名模板等交互能力。</p>
         </div>
         <div class="capability-grid">
           <article class="capability">
@@ -509,7 +535,7 @@
       </section>
     </main>
 
-    <footer><span>SaveAny-Bot · 内置 Web 控制台</span><span>服务配置仍由 TOML、环境变量或启动参数管理</span></footer>
+    <footer><span>SaveAny-Bot · 内置 Web 控制台</span><span>Web 写入 TOML；环境变量与启动参数仍具有更高优先级</span></footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -553,6 +579,11 @@
     const relayReset = document.querySelector("#relay-reset");
     const relayRefresh = document.querySelector("#relay-refresh");
     const relayList = document.querySelector("#relay-list");
+    const configForm = document.querySelector("#config-form");
+    const configSource = document.querySelector("#config-source");
+    const configContent = document.querySelector("#config-content");
+    const configNote = document.querySelector("#config-note");
+    const configSave = document.querySelector("#config-save");
     const toast = document.querySelector("#toast");
     let toastTimer;
 
@@ -581,6 +612,8 @@
           refreshButton.disabled = true;
           relaySubmit.disabled = true;
           relayRefresh.disabled = true;
+          configContent.disabled = true;
+          configSave.disabled = true;
           setConnection("令牌无效", "error");
         }
         throw new Error(data.message || `请求失败（${response.status}）`);
@@ -835,6 +868,17 @@
       if (showSuccess) showToast("Relay 路由已刷新");
     }
 
+    async function loadConfig() {
+      const data = await request("/config");
+      configSource.value = data.source || "未知";
+      configContent.value = data.content || "";
+      configContent.disabled = Boolean(data.read_only);
+      configSave.disabled = Boolean(data.read_only);
+      configNote.textContent = data.read_only
+        ? "HTTP(S) 远程配置为只读，请在配置源处修改。"
+        : "Token、密码和密钥会显示为 __SAVEANY_REDACTED_*__；保持该值即可保留原密钥，也可以直接填入新值。";
+    }
+
     async function connect() {
       const token = tokenInput.value.trim();
       if (!token) {
@@ -865,6 +909,7 @@
         loadRelayControls();
         renderTasks();
         renderRelays();
+        await loadConfig();
         refreshButton.disabled = false;
         relayRefresh.disabled = false;
         setConnection("已连接", "ok");
@@ -875,6 +920,8 @@
         refreshButton.disabled = true;
         relaySubmit.disabled = true;
         relayRefresh.disabled = true;
+        configContent.disabled = true;
+        configSave.disabled = true;
         setConnection("连接失败", "error");
         showToast(error.message, true);
       } finally {
@@ -978,6 +1025,30 @@
       }
     });
 
+    configForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!state.connected || !configForm.reportValidity()) return;
+      if (!window.confirm("保存后服务会立即重启，当前任务可能被中断。确定继续吗？")) return;
+      configSave.disabled = true;
+      configSave.textContent = "正在保存…";
+      try {
+        await request("/config", { method: "PUT", body: JSON.stringify({ content: configContent.value }) });
+        state.connected = false;
+        submitButton.disabled = true;
+        refreshButton.disabled = true;
+        relaySubmit.disabled = true;
+        relayRefresh.disabled = true;
+        configContent.disabled = true;
+        setConnection("正在重启");
+        showToast("配置已保存，服务正在重启");
+      } catch (error) {
+        showToast(error.message, true);
+      } finally {
+        configSave.disabled = !state.connected;
+        configSave.textContent = "保存并重启";
+      }
+    });
+
     connectButton.addEventListener("click", connect);
     tokenInput.addEventListener("keydown", event => { if (event.key === "Enter") connect(); });
     tokenInput.addEventListener("input", () => {
@@ -987,6 +1058,8 @@
         refreshButton.disabled = true;
         relaySubmit.disabled = true;
         relayRefresh.disabled = true;
+        configContent.disabled = true;
+        configSave.disabled = true;
         setConnection("待重新连接");
       }
     });

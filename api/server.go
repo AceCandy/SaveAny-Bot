@@ -22,7 +22,7 @@ type Server struct {
 }
 
 // NewServer 创建新的 API 服务器
-func NewServer(ctx context.Context) *Server {
+func NewServer(ctx context.Context, restart func()) *Server {
 	cfg := config.C().API
 
 	factory := NewTaskFactory(ctx)
@@ -61,6 +61,7 @@ func NewServer(ctx context.Context) *Server {
 	mux.HandleFunc("/api/v1/users", handlers.ListUsersHandler)
 	mux.HandleFunc("/api/v1/bot-relays", handlers.BotRelaysHandler)
 	mux.HandleFunc("/api/v1/bot-relays/", handlers.BotRelayHandler)
+	mux.HandleFunc("/api/v1/config", configFileHandler(restart))
 
 	// 404 处理
 	mux.HandleFunc("/", NotFoundHandler)
@@ -184,7 +185,7 @@ func (rw *responseWriter) WriteHeader(code int) {
 
 // Start initializes and starts the API server. It refuses to start without a
 // token, since an open download proxy is a security risk.
-func Start(ctx context.Context) error {
+func Start(ctx context.Context, restart func()) error {
 	cfg := config.C().API
 
 	if !cfg.Enable {
@@ -195,7 +196,7 @@ func Start(ctx context.Context) error {
 		return fmt.Errorf("API server is enabled but no token is set; refusing to start insecurely")
 	}
 
-	server := NewServer(ctx)
+	server := NewServer(ctx, restart)
 	if err := server.Start(ctx); err != nil {
 		return err
 	}
