@@ -18,6 +18,9 @@ func TestConfigFileHandler(t *testing.T) {
 	content := `workers = 2
 [telegram]
 token = "telegram-secret"
+app_hash = "telegram-hash"
+[aria2]
+secret = "aria2-secret"
 [api]
 enable = true
 host = "127.0.0.1"
@@ -44,14 +47,15 @@ base_path = "./downloads"
 		t.Fatalf("GET status = %d, body = %s", getRecorder.Code, getRecorder.Body.String())
 	}
 	var response struct {
-		Content  string `json:"content"`
-		Source   string `json:"source"`
-		ReadOnly bool   `json:"read_only"`
+		Content  string               `json:"content"`
+		Product  config.ProductConfig `json:"product"`
+		Source   string               `json:"source"`
+		ReadOnly bool                 `json:"read_only"`
 	}
 	if err := json.NewDecoder(getRecorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode GET response: %v", err)
 	}
-	if response.ReadOnly || response.Source != path || strings.Contains(response.Content, "api-secret") {
+	if response.ReadOnly || response.Source != path || response.Product.Workers != 2 || strings.Contains(response.Content, "api-secret") {
 		t.Fatalf("unexpected GET response: %+v", response)
 	}
 
@@ -74,5 +78,31 @@ base_path = "./downloads"
 	}
 	if !strings.Contains(string(saved), "workers = 6") || !strings.Contains(string(saved), "api-secret") {
 		t.Fatalf("saved config is incomplete:\n%s", saved)
+	}
+
+	restarted = false
+	response.Product.Workers = 7
+	patchBody, err := json.Marshal(response.Product)
+	if err != nil {
+		t.Fatalf("encode product config: %v", err)
+	}
+	patchRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(patchRecorder, httptest.NewRequest(http.MethodPatch, "/api/v1/config", bytes.NewReader(patchBody)))
+	if patchRecorder.Code != http.StatusOK {
+		t.Fatalf("PATCH status = %d, body = %s", patchRecorder.Code, patchRecorder.Body.String())
+	}
+	if !restarted {
+		t.Fatal("product config did not request restart")
+	}
+	saved, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read product config: %v", err)
+	}
+	if !strings.Contains(string(saved), "workers = 7") ||
+		!strings.Contains(string(saved), "telegram-secret") ||
+		!strings.Contains(string(saved), "telegram-hash") ||
+		!strings.Contains(string(saved), "aria2-secret") ||
+		!strings.Contains(string(saved), "api-secret") {
+		t.Fatalf("product config save is incomplete:\n%s", saved)
 	}
 }

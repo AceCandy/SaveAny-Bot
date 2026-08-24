@@ -48,7 +48,7 @@ On authentication failure, the server returns `401`:
 
 ## Web Dashboard
 
-After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. Enter the API token to select a task type and storage, create tasks, monitor progress, cancel tasks, manage Bot Relay routes, and edit the global TOML configuration.
+After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. It provides separate Product Settings, Tasks, Bot Relay, and Advanced Settings pages. Common options use a form, while the complete `config.toml` remains available under Advanced Settings.
 
 {{< hint info >}}
 The token is stored only in the current browser session's `sessionStorage`. Tokens, passwords, and keys in the global configuration are hidden behind unique placeholders. Keep a placeholder to preserve its original value, or replace it with a new value.
@@ -157,7 +157,7 @@ Example create request:
 }
 ```
 
-The source must be a Telegram channel and the target must be a bot. `timeout_seconds` accepts 1–86400 seconds; `quiet_seconds` accepts 1–300 seconds and cannot exceed the timeout.
+The source must be a Telegram channel accessible to the userbot and may be an `@username`, a `username`, or a Bot API-style `-100...` channel ID. The target must be a bot. `timeout_seconds` accepts 1–86400 seconds; `quiet_seconds` accepts 1–300 seconds and cannot exceed the timeout.
 
 ### PUT/DELETE /api/v1/bot-relays/:id — Update or Delete a Relay
 
@@ -406,7 +406,7 @@ For `transfer` tasks, the top-level `storage` field is still required for valida
 
 ### GET /api/v1/tasks — List All Tasks
 
-Returns all tasks created via the API. Task records are stored in memory only and are cleared on restart.
+Returns save tasks created through the HTTP API, Telegram Bot, and Bot Relay. Records are kept in memory only and cleared on restart; `source` is `api`, `bot`, or `relay`.
 
 **Response `200 OK`:**
 
@@ -418,6 +418,7 @@ Returns all tasks created via the API. Task records are stored in memory only an
       "type":       "directlinks",
       "status":     "running",
       "title":      "file.zip",
+      "source":     "api",
       "storage":    "local",
       "path":       "downloads",
       "error":      "",

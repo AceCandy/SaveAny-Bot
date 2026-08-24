@@ -22,9 +22,30 @@ func configFileHandler(restart func()) http.HandlerFunc {
 			}
 			WriteJSON(w, http.StatusOK, map[string]any{
 				"content":   file.Content,
+				"product":   config.ReadProductConfig(),
 				"source":    file.Source,
 				"read_only": file.ReadOnly,
 			})
+		case http.MethodPatch:
+			r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+			decoder := json.NewDecoder(r.Body)
+			decoder.DisallowUnknownFields()
+			var req config.ProductConfig
+			if err := decoder.Decode(&req); err != nil {
+				WriteError(w, http.StatusBadRequest, "invalid_request", "failed to decode request body: "+err.Error())
+				return
+			}
+			if restart == nil {
+				WriteError(w, http.StatusServiceUnavailable, "restart_unavailable", "restart is not available")
+				return
+			}
+			if err := config.SaveProductConfig(req); err != nil {
+				WriteError(w, http.StatusBadRequest, "config_save_failed", err.Error())
+				return
+			}
+			if err := WriteJSON(w, http.StatusOK, map[string]string{"message": "config saved; restarting"}); err == nil {
+				restart()
+			}
 		case http.MethodPut:
 			r.Body = http.MaxBytesReader(w, r.Body, 2<<20)
 			decoder := json.NewDecoder(r.Body)

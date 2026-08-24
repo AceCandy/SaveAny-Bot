@@ -2,13 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/krau/SaveAny-Bot/pkg/taskevent"
 )
 
-// TaskProgressInfo stores the progress of an API-submitted task. All fields are
+// TaskProgressInfo stores the progress of a submitted task. All fields are
 // guarded by mu. It implements taskevent.Sink so the task layer can update it
 // without knowing about the API.
 type TaskProgressInfo struct {
@@ -17,6 +18,7 @@ type TaskProgressInfo struct {
 	Type            string
 	Status          TaskStatus
 	Title           string
+	Source          taskevent.Source
 	TotalBytes      int64
 	DownloadedBytes int64
 	TotalFiles      int
@@ -46,11 +48,16 @@ var store = &progressStore{
 
 // RegisterTask registers a new API task and returns its progress info.
 func RegisterTask(taskID, taskType, storage, path, title, webhook string) *TaskProgressInfo {
+	return registerTask(taskID, taskType, storage, path, title, webhook, taskevent.SourceAPI)
+}
+
+func registerTask(taskID, taskType, storage, path, title, webhook string, source taskevent.Source) *TaskProgressInfo {
 	info := &TaskProgressInfo{
 		TaskID:    taskID,
 		Type:      taskType,
 		Status:    TaskStatusQueued,
 		Title:     title,
+		Source:    source,
 		Storage:   storage,
 		Path:      path,
 		CreatedAt: time.Now(),
@@ -63,6 +70,29 @@ func RegisterTask(taskID, taskType, storage, path, title, webhook string) *TaskP
 	store.mu.Unlock()
 
 	return info
+}
+
+// Emit 接收全部任务事件，并为非 HTTP 任务补建记录。
+func (s *progressStore) Emit(e taskevent.Event) {
+	s.mu.Lock()
+	info, exists := s.tasks[e.TaskID]
+	if !exists {
+		now := time.Now()
+		info = &TaskProgressInfo{
+			TaskID:    e.TaskID,
+			Type:      e.TaskType,
+			Status:    TaskStatusQueued,
+			Title:     e.Title,
+			Source:    e.Source,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+		s.tasks[e.TaskID] = info
+	}
+	s.mu.Unlock()
+	if e.Phase != taskevent.PhaseQueued {
+		info.Emit(e)
+	}
 }
 
 // GetTask returns the progress info for a task.
@@ -181,8 +211,12 @@ func (t *TaskProgressInfo) Emit(e taskevent.Event) {
 		}
 	case taskevent.PhaseDone:
 		if e.Err != nil {
-			t.Status = TaskStatusFailed
-			t.Error = e.Err.Error()
+			if errors.Is(e.Err, context.Canceled) {
+				t.Status = TaskStatusCancelled
+			} else {
+				t.Status = TaskStatusFailed
+				t.Error = e.Err.Error()
+			}
 		} else {
 			t.Status = TaskStatusCompleted
 		}

@@ -196,6 +196,7 @@ func convertTaskProgressToResponse(task *TaskProgressInfo) TaskInfoResponse {
 		Type:      tasktype.TaskType(task.Type),
 		Status:    status,
 		Title:     task.Title,
+		Source:    string(task.Source),
 		Storage:   task.Storage,
 		Path:      task.Path,
 		Error:     errMsg,

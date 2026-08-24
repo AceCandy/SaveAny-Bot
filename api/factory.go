@@ -33,7 +33,8 @@ type TaskFactory struct {
 
 // NewTaskFactory 创建任务工厂
 func NewTaskFactory(ctx context.Context) *TaskFactory {
-	return &TaskFactory{ctx: ctx}
+	taskevent.SetGlobalSink(store)
+	return &TaskFactory{ctx: taskevent.WithSource(ctx, taskevent.SourceAPI)}
 }
 
 // CreateTask 创建任务
@@ -69,14 +70,9 @@ func (f *TaskFactory) CreateTask(req *CreateTaskRequest) (*CreateTaskResponse, e
 
 func (f *TaskFactory) registerAndEnqueueTask(task core.Executable, taskType tasktype.TaskType, storageName, path, webhook string) error {
 	taskID := task.TaskID()
-	info := RegisterTask(taskID, string(taskType), storageName, path, task.Title(), webhook)
+	RegisterTask(taskID, string(taskType), storageName, path, task.Title(), webhook)
 
-	// Inject the progress sink into the context so the task's Emit calls update
-	// the API store (and fire the webhook on terminal states) without the task
-	// knowing about the API.
-	taskCtx := taskevent.WithSink(f.ctx, info)
-
-	err := core.AddTask(taskCtx, task)
+	err := core.AddTask(f.ctx, task)
 	if err != nil {
 		DeleteTask(taskID)
 		return fmt.Errorf("failed to add task: %w", err)

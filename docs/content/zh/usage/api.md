@@ -48,7 +48,7 @@ Authorization: Bearer <your-token>
 
 ## Web 控制台
 
-API 启动后，访问 `http://<服务器地址>:<端口>/` 即可打开内置控制台。输入 API Token 后，可以选择任务类型和存储、创建任务、查看进度、取消任务、管理 Bot Relay 路由，以及编辑全局 TOML 配置。
+API 启动后，访问 `http://<服务器地址>:<端口>/` 即可打开内置控制台。控制台分为产品配置、任务管理、Bot Relay 和高级配置四个页面；常用选项可通过表单配置，完整 `config.toml` 仍可在高级配置中编辑。
 
 {{< hint info >}}
 Token 仅保存在当前浏览器会话的 `sessionStorage` 中。全局配置中的 Token、密码和密钥会被唯一占位符隐藏；保留占位符即可保留原值，也可以直接填入新值。
@@ -157,7 +157,7 @@ Bot Relay 路由独立保存在数据库中，新增、编辑、启停和删除�
 }
 ```
 
-来源必须是 Telegram 频道，目标必须是 Bot。`timeout_seconds` 允许 1–86400 秒，`quiet_seconds` 允许 1–300 秒且不能超过等待超时。
+来源必须是 Userbot 可访问的 Telegram 频道，可填写 `@username`、`username` 或 Bot API 风格的 `-100...` 频道 ID；目标必须是 Bot。`timeout_seconds` 允许 1–86400 秒，`quiet_seconds` 允许 1–300 秒且不能超过等待超时。
 
 ### PUT/DELETE /api/v1/bot-relays/:id — 更新或删除 Relay
 
@@ -406,7 +406,7 @@ Authorization: Bearer <token>
 
 ### GET /api/v1/tasks — 列出所有任务
 
-返回所有 API 创建的任务（仅在内存中保留，重启后清空）。
+返回 HTTP API、Telegram Bot 和 Bot Relay 创建的保存任务。记录仅保存在内存中，重启后清空；`source` 为 `api`、`bot` 或 `relay`。
 
 **响应 `200 OK`：**
 
@@ -418,6 +418,7 @@ Authorization: Bearer <token>
       "type":       "directlinks",
       "status":     "running",
       "title":      "file.zip",
+      "source":     "api",
       "storage":    "local",
       "path":       "downloads",
       "error":      "",

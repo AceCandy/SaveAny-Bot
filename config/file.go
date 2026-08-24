@@ -88,6 +88,12 @@ func ReadManagedConfig() (ManagedConfigFile, error) {
 
 // SaveManagedConfig validates and replaces the active local TOML file.
 func SaveManagedConfig(content string) error {
+	return updateManagedConfig(func(original []byte) ([]byte, error) {
+		return prepareTOML(original, []byte(content))
+	})
+}
+
+func updateManagedConfig(update func([]byte) ([]byte, error)) error {
 	source, remote := configSource()
 	if source == "" {
 		return errors.New("config source is unknown")
@@ -102,7 +108,7 @@ func SaveManagedConfig(content string) error {
 	if err != nil {
 		return err
 	}
-	data, err := prepareTOML(original, []byte(content))
+	data, err := update(original)
 	if err != nil {
 		return err
 	}

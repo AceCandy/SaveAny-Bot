@@ -45,7 +45,13 @@ func worker(ctx context.Context, qe *queue.TaskQueue[Executable], semaphore chan
 		exe := qtask.Data
 		taskCtx := qtask.Context()
 		logger.Infof("Processing task: %s", exe.TaskID())
-		taskevent.Emit(taskCtx, taskevent.Event{TaskID: exe.TaskID(), Phase: taskevent.PhaseStart})
+		taskevent.Emit(taskCtx, taskevent.Event{
+			TaskID:   exe.TaskID(),
+			TaskType: string(exe.Type()),
+			Title:    exe.Title(),
+			Source:   taskSource(taskCtx),
+			Phase:    taskevent.PhaseStart,
+		})
 		if err := ExecCommandString(taskCtx, execHooks.TaskBeforeStart); err != nil {
 			logger.Errorf("Failed to execute before start hook for task %s: %v", exe.TaskID(), err)
 		}
@@ -68,7 +74,14 @@ func worker(ctx context.Context, qe *queue.TaskQueue[Executable], semaphore chan
 				logger.Errorf("Failed to execute success hook for task %s: %v", exe.TaskID(), err)
 			}
 		}
-		taskevent.Emit(taskCtx, taskevent.Event{TaskID: exe.TaskID(), Phase: taskevent.PhaseDone, Err: err})
+		taskevent.Emit(taskCtx, taskevent.Event{
+			TaskID:   exe.TaskID(),
+			TaskType: string(exe.Type()),
+			Title:    exe.Title(),
+			Source:   taskSource(taskCtx),
+			Phase:    taskevent.PhaseDone,
+			Err:      err,
+		})
 		qe.Done(qtask.ID)
 		<-semaphore
 	}
@@ -92,11 +105,33 @@ func Close() {
 }
 
 func AddTask(ctx context.Context, task Executable) error {
-	return initQueue().Add(queue.NewTask(ctx, task.TaskID(), task.Title(), task))
+	err := initQueue().Add(queue.NewTask(ctx, task.TaskID(), task.Title(), task))
+	if err != nil {
+		return err
+	}
+	taskevent.Emit(ctx, taskevent.Event{
+		TaskID:   task.TaskID(),
+		TaskType: string(task.Type()),
+		Title:    task.Title(),
+		Source:   taskSource(ctx),
+		Phase:    taskevent.PhaseQueued,
+	})
+	return nil
+}
+
+func taskSource(ctx context.Context) taskevent.Source {
+	source := taskevent.SourceFromContext(ctx)
+	if source == "" {
+		return taskevent.SourceBot
+	}
+	return source
 }
 
 func CancelTask(ctx context.Context, id string) error {
 	err := queueInstance.CancelTask(id)
+	if err == nil {
+		taskevent.Emit(ctx, taskevent.Event{TaskID: id, Phase: taskevent.PhaseDone, Err: context.Canceled})
+	}
 	return err
 }
 

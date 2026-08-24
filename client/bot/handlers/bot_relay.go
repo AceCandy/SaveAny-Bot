@@ -20,6 +20,7 @@ import (
 	"github.com/krau/SaveAny-Bot/common/i18n/i18nk"
 	"github.com/krau/SaveAny-Bot/common/utils/tgutil"
 	"github.com/krau/SaveAny-Bot/database"
+	"github.com/krau/SaveAny-Bot/pkg/taskevent"
 	"github.com/krau/SaveAny-Bot/pkg/tfile"
 	"github.com/krau/SaveAny-Bot/storage"
 )
@@ -272,10 +273,12 @@ func (m *botRelayManager) addTasks(request botRelayRequest, files []tfile.TGFile
 	}
 
 	var result error
+	relayCtx := *m.botCtx
+	relayCtx.Context = taskevent.WithSource(relayCtx.Context, taskevent.SourceRelay)
 	if len(files) == 1 {
-		result = shortcut.CreateAndAddTGFileTaskWithEdit(m.botCtx, user.ChatID, stor, dirPath, files[0], request.statusMessageID)
+		result = shortcut.CreateAndAddTGFileTaskWithEdit(&relayCtx, user.ChatID, stor, dirPath, files[0], request.statusMessageID)
 	} else {
-		result = shortcut.CreateAndAddBatchTGFileTaskWithEdit(m.botCtx, user.ChatID, stor, dirPath, files, request.statusMessageID)
+		result = shortcut.CreateAndAddBatchTGFileTaskWithEdit(&relayCtx, user.ChatID, stor, dirPath, files, request.statusMessageID)
 	}
 	if result != nil && !errors.Is(result, dispatcher.EndGroups) {
 		m.fail(request, result)

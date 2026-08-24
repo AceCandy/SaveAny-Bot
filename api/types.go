@@ -52,6 +52,7 @@ type TaskInfoResponse struct {
 	Type      tasktype.TaskType `json:"type"`
 	Status    TaskStatus        `json:"status"`
 	Title     string            `json:"title"`
+	Source    string            `json:"source"`
 	Progress  *TaskProgress     `json:"progress,omitempty"`
 	Storage   string            `json:"storage"`
 	Path      string            `json:"path"`

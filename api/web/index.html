@@ -46,7 +46,7 @@
       outline-offset: 2px;
     }
 
-    .shell { width: min(1440px, 100%); margin: 0 auto; padding: 0 28px 56px; }
+    .shell { width: min(1280px, 100%); margin: 0 auto; padding: 0 28px 40px; }
 
     .topbar {
       position: sticky;
@@ -130,17 +130,24 @@
     .button.danger { border-color: rgba(255, 127, 134, .28); color: var(--danger); background: rgba(255, 127, 134, .08); box-shadow: none; }
     .button.small { min-height: 34px; padding: 0 12px; font-size: 13px; }
 
-    .hero {
-      display: grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap: 40px;
-      align-items: end;
-      padding: 58px 0 38px;
+    .page-nav { display: flex; gap: 8px; padding: 18px 0; overflow-x: auto; scrollbar-width: none; }
+    .page-nav::-webkit-scrollbar { display: none; }
+    .nav-button {
+      min-height: 40px;
+      flex: 0 0 auto;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 700;
     }
-    .eyebrow { margin: 0 0 11px; color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-    h1 { max-width: 760px; margin: 0; font-size: clamp(36px, 5vw, 68px); line-height: 1.02; letter-spacing: -.055em; }
-    .hero-copy { max-width: 650px; margin: 20px 0 0; color: var(--muted); font-size: 16px; line-height: 1.75; }
-    .hero-copy strong { color: var(--text); }
+    .nav-button:hover { color: var(--text); background: rgba(255, 255, 255, .035); }
+    .nav-button[aria-selected="true"] { border-color: var(--line); color: var(--text); background: var(--panel-strong); }
+    .page-view { display: grid; gap: 18px; }
+    .page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 24px 2px 4px; }
+    .page-header h1 { margin: 0; font-size: clamp(27px, 4vw, 38px); letter-spacing: -.045em; }
+    .page-header p { max-width: 520px; margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 
     .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .stat {
@@ -174,12 +181,19 @@
     .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .form-note { min-height: 39px; margin: -2px 0 0; padding: 10px 12px; border-radius: 10px; color: #bdd4c8; background: rgba(113, 230, 174, .055); font-size: 12px; line-height: 1.55; }
     .submit { width: 100%; margin-top: 2px; }
-	.relay-section { padding: 18px 0 0; }
 	.relay-actions { display: flex; gap: 10px; }
 	.relay-actions .button { flex: 1; }
-	.config-section { padding: 18px 0 0; }
 	.config-editor { min-height: 560px; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 13px; tab-size: 2; }
 	.config-source { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .settings-card { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+    .settings-card h2 { margin: 0 0 18px; font-size: 17px; }
+    .settings-card .field + .field, .settings-card .field-row + .field, .settings-card .field + .field-row, .settings-card .field-row + .field-row { margin-top: 14px; }
+    .check-field { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+    .check-field input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent-strong); }
+    .check-field label { color: #d9ede3; font-size: 13px; font-weight: 650; }
+    .settings-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding-top: 2px; }
+    .settings-actions p { flex: 1; margin: 0; color: var(--muted); font-size: 12px; }
 
     .task-list { display: grid; gap: 11px; }
     .task-card { padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: rgba(4, 16, 11, .56); }
@@ -204,19 +218,7 @@
     .empty strong { display: block; }
     .empty p { max-width: 360px; margin: 8px auto 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 
-    .capabilities { padding: 52px 0 0; }
-    .section-heading { max-width: 680px; margin-bottom: 20px; }
-    .section-heading h2 { margin: 0; font-size: 26px; letter-spacing: -.035em; }
-    .section-heading p { margin: 10px 0 0; color: var(--muted); line-height: 1.65; }
-    .capability-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
-    .capability { min-height: 188px; padding: 20px; border: 1px solid var(--line); border-radius: 17px; background: rgba(13, 34, 27, .58); }
-    .capability-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; color: var(--accent); background: rgba(113, 230, 174, .1); font-weight: 800; }
-    .capability h3 { margin: 19px 0 8px; font-size: 15px; }
-    .capability p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
-    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
-    .tag { padding: 4px 7px; border: 1px solid var(--line); border-radius: 999px; color: #b9cec3; font-size: 10px; }
-
-    footer { display: flex; justify-content: space-between; gap: 20px; padding: 30px 2px 0; color: var(--muted); font-size: 12px; }
+    footer { padding: 26px 2px 0; color: var(--muted); font-size: 12px; }
 
     .toast {
       position: fixed;
@@ -240,10 +242,9 @@
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
     @media (max-width: 1060px) {
-      .hero { grid-template-columns: 1fr; }
-      .stats { max-width: 680px; grid-template-columns: repeat(4, 1fr); }
+      .stats { min-width: 460px; grid-template-columns: repeat(4, 1fr); }
       .workspace { grid-template-columns: 1fr; }
-      .capability-grid { grid-template-columns: repeat(2, 1fr); }
+      .settings-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 720px) {
@@ -251,12 +252,13 @@
       .topbar { position: static; align-items: flex-start; flex-direction: column; }
       .connection { align-items: stretch; flex-wrap: wrap; justify-content: flex-start; }
       .token-wrap { flex-basis: 100%; }
-      .hero { padding-top: 42px; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
+      .page-header { align-items: flex-start; flex-direction: column; padding-top: 16px; }
+      .stats { min-width: 0; grid-template-columns: repeat(2, 1fr); }
       .field-row { grid-template-columns: 1fr; }
       .panel-body { padding: 19px; }
-      .capability-grid { grid-template-columns: 1fr; }
-      footer { flex-direction: column; }
+      .settings-card { padding: 19px; }
+      .settings-actions { align-items: stretch; flex-direction: column; }
+      .settings-actions .button { width: 100%; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -269,7 +271,7 @@
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">S</span>
-        <span><strong>SaveAny</strong><small>任务控制台</small></span>
+        <span><strong>SaveAny</strong><small>管理控制台</small></span>
       </div>
       <div class="connection">
         <div class="token-wrap">
@@ -282,20 +284,100 @@
       </div>
     </header>
 
+    <nav class="page-nav" role="tablist" aria-label="控制台页面">
+      <button class="nav-button" id="nav-product" type="button" role="tab" aria-controls="page-product" aria-selected="true" data-page="product">产品配置</button>
+      <button class="nav-button" id="nav-tasks" type="button" role="tab" aria-controls="page-tasks" aria-selected="false" data-page="tasks">任务管理</button>
+      <button class="nav-button" id="nav-relay" type="button" role="tab" aria-controls="page-relay" aria-selected="false" data-page="relay">Bot Relay</button>
+      <button class="nav-button" id="nav-advanced" type="button" role="tab" aria-controls="page-advanced" aria-selected="false" data-page="advanced">高级配置</button>
+    </nav>
+
     <main>
-      <section class="hero">
-        <div>
-          <p class="eyebrow">One console · every source</p>
-          <h1>把内容送到<br>你想要的地方。</h1>
-          <p class="hero-copy">从直链、Telegram、Telegraph、解析器、yt-dlp 或 Aria2 创建任务，统一保存到已配置的存储。<strong>Token 只保留在当前浏览器会话中。</strong></p>
+      <section class="page-view" id="page-product" role="tabpanel" aria-labelledby="nav-product" data-page-panel="product">
+        <div class="page-header">
+          <div><h1>产品配置</h1><p>常用设置使用表单管理，保存后服务自动重启。</p></div>
         </div>
-        <div class="stats" role="group" aria-label="任务统计">
-          <div class="stat"><span>全部任务</span><strong id="stat-total">—</strong></div>
-          <div class="stat"><span>排队 / 运行</span><strong id="stat-active">—</strong></div>
-          <div class="stat"><span>已完成</span><strong id="stat-completed">—</strong></div>
-          <div class="stat"><span>异常 / 取消</span><strong id="stat-failed">—</strong></div>
-        </div>
+        <form id="product-form">
+          <fieldset class="settings-grid" id="product-fields" disabled>
+            <section class="settings-card" aria-labelledby="settings-basic-title">
+              <h2 id="settings-basic-title">基础设置</h2>
+              <div class="field-row">
+                <div class="field">
+                  <label for="setting-lang">语言</label>
+                  <select id="setting-lang"><option value="zh-Hans">简体中文</option><option value="en">English</option></select>
+                </div>
+                <div class="field">
+                  <label for="setting-log-level">日志级别</label>
+                  <select id="setting-log-level"><option value="debug">Debug</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option><option value="fatal">Fatal</option></select>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label for="setting-workers">并行任务数</label><input id="setting-workers" type="number" min="1" required></div>
+                <div class="field"><label for="setting-threads">单任务线程数</label><input id="setting-threads" type="number" min="1" required></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label for="setting-retry">失败重试次数</label><input id="setting-retry" type="number" min="1" required></div>
+                <div class="check-field"><input id="setting-stream" type="checkbox"><label for="setting-stream">启用流式传输</label></div>
+              </div>
+            </section>
+
+            <section class="settings-card" aria-labelledby="settings-telegram-title">
+              <h2 id="settings-telegram-title">Telegram</h2>
+              <div class="field"><label for="setting-telegram-token">Bot Token</label><input id="setting-telegram-token" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
+              <div class="field-row">
+                <div class="field"><label for="setting-telegram-app-id">App ID</label><input id="setting-telegram-app-id" type="number" min="1" required></div>
+                <div class="field"><label for="setting-telegram-app-hash">App Hash</label><input id="setting-telegram-app-hash" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
+              </div>
+              <div class="field-row">
+                <div class="field"><label for="setting-telegram-rpc-retry">RPC 重试次数</label><input id="setting-telegram-rpc-retry" type="number" min="0" required></div>
+                <div class="field"><label for="setting-media-timeout">相册等待时间（秒）</label><input id="setting-media-timeout" type="number" min="0" required></div>
+              </div>
+              <div class="field-row">
+                <div class="check-field"><input id="setting-userbot-enable" type="checkbox"><label for="setting-userbot-enable">启用 Userbot</label></div>
+                <div class="field"><label for="setting-userbot-session">Userbot 会话文件</label><input id="setting-userbot-session"></div>
+              </div>
+            </section>
+
+            <section class="settings-card" aria-labelledby="settings-download-title">
+              <h2 id="settings-download-title">下载工具</h2>
+              <div class="field-row">
+                <div class="field"><label for="setting-ytdlp-height">yt-dlp 最高分辨率</label><input id="setting-ytdlp-height" type="number" min="0" required></div>
+                <div class="field"><label for="setting-ytdlp-recode">转封装格式</label><input id="setting-ytdlp-recode" placeholder="例如 mp4"></div>
+              </div>
+              <div class="field"><label for="setting-ytdlp-format">yt-dlp Format</label><input id="setting-ytdlp-format" placeholder="留空使用分辨率限制"></div>
+              <div class="field-row">
+                <div class="check-field"><input id="setting-aria2-enable" type="checkbox"><label for="setting-aria2-enable">启用 Aria2</label></div>
+                <div class="field"><label for="setting-aria2-url">Aria2 RPC 地址</label><input id="setting-aria2-url" type="url" placeholder="http://localhost:6800/jsonrpc"></div>
+              </div>
+              <div class="field"><label for="setting-aria2-secret">Aria2 Secret</label><input id="setting-aria2-secret" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
+            </section>
+
+            <section class="settings-card" aria-labelledby="settings-api-title">
+              <h2 id="settings-api-title">Web API</h2>
+              <div class="field-row">
+                <div class="field"><label for="setting-api-host">监听地址</label><input id="setting-api-host" required></div>
+                <div class="field"><label for="setting-api-port">端口</label><input id="setting-api-port" type="number" min="1" max="65535" required></div>
+              </div>
+              <div class="field"><label for="setting-api-token">新 API Token</label><input id="setting-api-token" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
+              <p class="field-help">修改监听地址、端口或 Token 后，请使用新地址重新连接。</p>
+            </section>
+          </fieldset>
+          <div class="settings-actions">
+            <p>环境变量和启动参数仍具有更高优先级。</p>
+            <button class="button" id="product-save" type="submit" disabled>保存并重启</button>
+          </div>
+        </form>
       </section>
+
+      <section class="page-view" id="page-tasks" role="tabpanel" aria-labelledby="nav-tasks" data-page-panel="tasks" hidden>
+        <div class="page-header">
+          <div><h1>任务管理</h1><p>创建任务并查看队列状态。</p></div>
+          <div class="stats" role="group" aria-label="任务统计">
+            <div class="stat"><span>全部</span><strong id="stat-total">—</strong></div>
+            <div class="stat"><span>进行中</span><strong id="stat-active">—</strong></div>
+            <div class="stat"><span>已完成</span><strong id="stat-completed">—</strong></div>
+            <div class="stat"><span>异常</span><strong id="stat-failed">—</strong></div>
+          </div>
+        </div>
 
       <div class="workspace">
         <section class="panel" aria-labelledby="create-title">
@@ -405,7 +487,7 @@
         <section class="panel" aria-labelledby="tasks-title">
           <div class="panel-body">
             <div class="panel-heading">
-              <div><h2 id="tasks-title">任务动态</h2><p>每 5 秒自动刷新，仅显示通过 HTTP API 创建的任务。</p></div>
+              <div><h2 id="tasks-title">任务动态</h2><p>每 5 秒自动刷新，统一显示 API、Telegram Bot 和 Relay 保存任务。</p></div>
               <button class="button secondary small" id="refresh-button" type="button" disabled>刷新</button>
             </div>
             <div class="task-list" id="task-list">
@@ -414,13 +496,17 @@
           </div>
         </section>
       </div>
+      </section>
 
-      <section class="relay-section" aria-labelledby="relay-title">
+      <section class="page-view" id="page-relay" role="tabpanel" aria-labelledby="nav-relay" data-page-panel="relay" hidden>
+        <div class="page-header">
+          <div><h1>Bot Relay</h1><p>把频道中的 Deep Link 转发给目标 Bot 并保存返回文件。</p></div>
+        </div>
         <div class="workspace">
           <section class="panel">
             <div class="panel-body">
               <div class="panel-heading">
-                <div><h2 id="relay-title">Bot Relay</h2><p>监听频道 Deep Link，并把目标 Bot 返回的媒体直接加入用户的 SaveAny 队列。</p></div>
+                <div><h2 id="relay-title">新增路由</h2></div>
               </div>
 
               <form id="relay-form">
@@ -433,7 +519,7 @@
                 <div class="field-row">
                   <div class="field">
                     <label for="relay-source">来源频道</label>
-                    <input id="relay-source" required placeholder="例如 @mychannel" autocomplete="off">
+                    <input id="relay-source" required placeholder="例如 @mychannel 或 -1001234567890" autocomplete="off">
                   </div>
                   <div class="field">
                     <label for="relay-target">目标 Bot</label>
@@ -477,11 +563,14 @@
         </div>
       </section>
 
-      <section class="config-section" aria-labelledby="config-title">
+      <section class="page-view" id="page-advanced" role="tabpanel" aria-labelledby="nav-advanced" data-page-panel="advanced" hidden>
+        <div class="page-header">
+          <div><h1>高级配置</h1><p>编辑完整 config.toml，适用于存储、用户和其他高级选项。</p></div>
+        </div>
         <section class="panel">
           <div class="panel-body">
             <div class="panel-heading">
-              <div><h2 id="config-title">全局配置</h2><p>直接编辑当前本地 TOML；保存前会校验，成功后服务自动重启并加载新配置。</p></div>
+              <div><h2 id="config-title">config.toml</h2></div>
             </div>
             <form id="config-form">
               <div class="field">
@@ -499,43 +588,9 @@
           </div>
         </section>
       </section>
-
-      <section class="capabilities" aria-labelledby="capability-title">
-        <div class="section-heading">
-          <p class="eyebrow">Project capabilities</p>
-          <h2 id="capability-title">一套队列，多种保存方式</h2>
-          <p>Web 控制台覆盖 HTTP API、Bot Relay 与全局 TOML 配置；Telegram Bot 继续提供规则、监听聊天、目录与文件名模板等交互能力。</p>
-        </div>
-        <div class="capability-grid">
-          <article class="capability">
-            <span class="capability-icon">↓</span>
-            <h3>多来源抓取</h3>
-            <p>处理文件直链、Telegram 消息、Telegraph 图片、网站解析与视频下载。</p>
-            <div class="tags"><span class="tag">直链</span><span class="tag">Telegram</span><span class="tag">yt-dlp</span><span class="tag">Aria2</span></div>
-          </article>
-          <article class="capability">
-            <span class="capability-icon">◇</span>
-            <h3>七类存储后端</h3>
-            <p>保存到本地、WebDAV、AList、MinIO、S3、Rclone 或 Telegram。</p>
-            <div class="tags"><span class="tag">Local</span><span class="tag">S3</span><span class="tag">WebDAV</span><span class="tag">Rclone</span></div>
-          </article>
-          <article class="capability">
-            <span class="capability-icon">⇄</span>
-            <h3>队列与跨存储传输</h3>
-            <p>统一排队、进度追踪和取消任务；可读存储之间可以直接迁移文件。</p>
-            <div class="tags"><span class="tag">进度</span><span class="tag">取消</span><span class="tag">批量</span><span class="tag">Webhook</span></div>
-          </article>
-          <article class="capability">
-            <span class="capability-icon">⌘</span>
-            <h3>Telegram 自动化</h3>
-            <p>按规则分流文件，监听聊天自动保存，并支持相册、静默模式和多用户授权。</p>
-            <div class="tags"><span class="tag">规则</span><span class="tag">监听</span><span class="tag">多用户</span><span class="tag">相册</span></div>
-          </article>
-        </div>
-      </section>
     </main>
 
-    <footer><span>SaveAny-Bot · 内置 Web 控制台</span><span>Web 写入 TOML；环境变量与启动参数仍具有更高优先级</span></footer>
+    <footer>SaveAny-Bot · 管理控制台</footer>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -559,8 +614,11 @@
       failed: "失败",
       cancelled: "已取消"
     };
-    const state = { connected: false, token: "", storages: [], tasks: [], users: [], relays: [] };
+    const sourceText = { api: "HTTP API", bot: "Telegram Bot", relay: "Bot Relay" };
+    const state = { connected: false, token: "", storages: [], tasks: [], users: [], relays: [], page: "product", configReadOnly: true };
 
+    const pageButtons = [...document.querySelectorAll("[data-page]")];
+    const pagePanels = [...document.querySelectorAll("[data-page-panel]")];
     const tokenInput = document.querySelector("#api-token");
     const connectButton = document.querySelector("#connect-button");
     const connectionStatus = document.querySelector("#connection-status");
@@ -579,6 +637,9 @@
     const relayReset = document.querySelector("#relay-reset");
     const relayRefresh = document.querySelector("#relay-refresh");
     const relayList = document.querySelector("#relay-list");
+    const productForm = document.querySelector("#product-form");
+    const productFields = document.querySelector("#product-fields");
+    const productSave = document.querySelector("#product-save");
     const configForm = document.querySelector("#config-form");
     const configSource = document.querySelector("#config-source");
     const configContent = document.querySelector("#config-content");
@@ -599,6 +660,29 @@
       connectionStatus.className = `status${kind ? ` ${kind}` : ""}`;
     }
 
+    function showPage(page) {
+      if (!pagePanels.some(panel => panel.dataset.pagePanel === page)) page = "product";
+      state.page = page;
+      for (const button of pageButtons) {
+        const selected = button.dataset.page === page;
+        button.setAttribute("aria-selected", String(selected));
+        button.tabIndex = selected ? 0 : -1;
+      }
+      for (const panel of pagePanels) panel.hidden = panel.dataset.pagePanel !== page;
+      history.replaceState(null, "", `#${page}`);
+    }
+
+    function disableControls() {
+      submitButton.disabled = true;
+      refreshButton.disabled = true;
+      relaySubmit.disabled = true;
+      relayRefresh.disabled = true;
+      productFields.disabled = true;
+      productSave.disabled = true;
+      configContent.disabled = true;
+      configSave.disabled = true;
+    }
+
     async function request(path, options = {}) {
       const headers = new Headers(options.headers || {});
       headers.set("Authorization", `Bearer ${state.token}`);
@@ -608,12 +692,7 @@
       if (!response.ok) {
         if (response.status === 401) {
           state.connected = false;
-          submitButton.disabled = true;
-          refreshButton.disabled = true;
-          relaySubmit.disabled = true;
-          relayRefresh.disabled = true;
-          configContent.disabled = true;
-          configSave.disabled = true;
+          disableControls();
           setConnection("令牌无效", "error");
         }
         throw new Error(data.message || `请求失败（${response.status}）`);
@@ -748,7 +827,12 @@
         card.append(top);
 
         const meta = element("div", "task-meta");
-        meta.append(element("span", "", `来源：${taskMeta[task.type]?.[0] || task.type}`), element("span", "", `存储：${task.storage || "—"}`), element("span", "", `路径：${task.path || "/"}`));
+        meta.append(
+          element("span", "", `来源：${sourceText[task.source] || task.source || "未知"}`),
+          element("span", "", `类型：${taskMeta[task.type]?.[0] || task.type}`),
+          element("span", "", `存储：${task.storage || "—"}`),
+          element("span", "", `路径：${task.path || "/"}`)
+        );
         card.append(meta);
 
         if (task.progress) {
@@ -792,6 +876,10 @@
       };
     }
 
+    function relaySourceLabel(source) {
+      return source.startsWith("-") ? source : `@${source}`;
+    }
+
     function resetRelayForm() {
       relayForm.reset();
       document.querySelector("#relay-id").value = "";
@@ -802,7 +890,7 @@
     function editRelay(relay) {
       document.querySelector("#relay-id").value = relay.id;
       relayOwner.value = String(relay.user_id);
-      document.querySelector("#relay-source").value = `@${relay.source_chat}`;
+      document.querySelector("#relay-source").value = relaySourceLabel(relay.source_chat);
       document.querySelector("#relay-target").value = `@${relay.target_bot}`;
       document.querySelector("#relay-timeout").value = relay.timeout_seconds;
       document.querySelector("#relay-quiet").value = relay.quiet_seconds;
@@ -826,7 +914,7 @@
         const card = element("article", "task-card");
         const top = element("div", "task-top");
         const title = element("div", "task-title");
-        title.append(element("strong", "", `@${relay.source_chat} → @${relay.target_bot}`), element("code", "", `Relay #${relay.id}`));
+        title.append(element("strong", "", `${relaySourceLabel(relay.source_chat)} → @${relay.target_bot}`), element("code", "", `Relay #${relay.id}`));
         top.append(title, element("span", `badge ${relay.enabled ? "completed" : "cancelled"}`, relay.enabled ? "已启用" : "已停用"));
         card.append(top);
 
@@ -854,6 +942,59 @@
       }
     }
 
+    function setSetting(id, value) {
+      document.querySelector(`#${id}`).value = value ?? "";
+    }
+
+    function loadProductConfig(product = {}) {
+      setSetting("setting-lang", product.lang);
+      setSetting("setting-workers", product.workers);
+      setSetting("setting-retry", product.retry);
+      setSetting("setting-threads", product.threads);
+      document.querySelector("#setting-stream").checked = Boolean(product.stream);
+      setSetting("setting-log-level", product.log_level);
+      setSetting("setting-telegram-app-id", product.telegram_app_id);
+      setSetting("setting-telegram-rpc-retry", product.telegram_rpc_retry);
+      setSetting("setting-media-timeout", product.telegram_media_group_timeout);
+      document.querySelector("#setting-userbot-enable").checked = Boolean(product.userbot_enable);
+      setSetting("setting-userbot-session", product.userbot_session);
+      setSetting("setting-ytdlp-height", product.ytdlp_max_height);
+      setSetting("setting-ytdlp-format", product.ytdlp_format);
+      setSetting("setting-ytdlp-recode", product.ytdlp_recode);
+      document.querySelector("#setting-aria2-enable").checked = Boolean(product.aria2_enable);
+      setSetting("setting-aria2-url", product.aria2_url);
+      setSetting("setting-api-host", product.api_host);
+      setSetting("setting-api-port", product.api_port);
+      for (const id of ["setting-telegram-token", "setting-telegram-app-hash", "setting-aria2-secret", "setting-api-token"]) setSetting(id, "");
+    }
+
+    function productBody() {
+      return {
+        lang: document.querySelector("#setting-lang").value,
+        workers: Number(document.querySelector("#setting-workers").value),
+        retry: Number(document.querySelector("#setting-retry").value),
+        threads: Number(document.querySelector("#setting-threads").value),
+        stream: document.querySelector("#setting-stream").checked,
+        log_level: document.querySelector("#setting-log-level").value,
+        telegram_token: document.querySelector("#setting-telegram-token").value.trim(),
+        telegram_app_id: Number(document.querySelector("#setting-telegram-app-id").value),
+        telegram_app_hash: document.querySelector("#setting-telegram-app-hash").value.trim(),
+        telegram_rpc_retry: Number(document.querySelector("#setting-telegram-rpc-retry").value),
+        telegram_media_group_timeout: Number(document.querySelector("#setting-media-timeout").value),
+        userbot_enable: document.querySelector("#setting-userbot-enable").checked,
+        userbot_session: document.querySelector("#setting-userbot-session").value.trim(),
+        ytdlp_max_height: Number(document.querySelector("#setting-ytdlp-height").value),
+        ytdlp_format: document.querySelector("#setting-ytdlp-format").value.trim(),
+        ytdlp_recode: document.querySelector("#setting-ytdlp-recode").value.trim(),
+        aria2_enable: document.querySelector("#setting-aria2-enable").checked,
+        aria2_url: document.querySelector("#setting-aria2-url").value.trim(),
+        aria2_secret: document.querySelector("#setting-aria2-secret").value.trim(),
+        api_host: document.querySelector("#setting-api-host").value.trim(),
+        api_port: Number(document.querySelector("#setting-api-port").value),
+        api_token: document.querySelector("#setting-api-token").value.trim()
+      };
+    }
+
     async function refreshTasks(showSuccess = false) {
       const data = await request("/tasks");
       state.tasks = Array.isArray(data.tasks) ? data.tasks : [];
@@ -870,11 +1011,15 @@
 
     async function loadConfig() {
       const data = await request("/config");
+      state.configReadOnly = Boolean(data.read_only);
+      loadProductConfig(data.product);
       configSource.value = data.source || "未知";
       configContent.value = data.content || "";
-      configContent.disabled = Boolean(data.read_only);
-      configSave.disabled = Boolean(data.read_only);
-      configNote.textContent = data.read_only
+      productFields.disabled = state.configReadOnly;
+      productSave.disabled = state.configReadOnly;
+      configContent.disabled = state.configReadOnly;
+      configSave.disabled = state.configReadOnly;
+      configNote.textContent = state.configReadOnly
         ? "HTTP(S) 远程配置为只读，请在配置源处修改。"
         : "Token、密码和密钥会显示为 __SAVEANY_REDACTED_*__；保持该值即可保留原密钥，也可以直接填入新值。";
     }
@@ -916,12 +1061,7 @@
         showToast(`已连接，发现 ${state.storages.length} 个存储`);
       } catch (error) {
         state.connected = false;
-        submitButton.disabled = true;
-        refreshButton.disabled = true;
-        relaySubmit.disabled = true;
-        relayRefresh.disabled = true;
-        configContent.disabled = true;
-        configSave.disabled = true;
+        disableControls();
         setConnection("连接失败", "error");
         showToast(error.message, true);
       } finally {
@@ -962,6 +1102,13 @@
       } catch (error) {
         showToast(error.message, true);
       }
+    }
+
+    function markRestarting() {
+      state.connected = false;
+      disableControls();
+      setConnection("正在重启");
+      showToast("配置已保存，服务正在重启");
     }
 
     taskForm.addEventListener("submit", async event => {
@@ -1025,6 +1172,23 @@
       }
     });
 
+    productForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!state.connected || !productForm.reportValidity()) return;
+      if (!window.confirm("保存后服务会立即重启，当前任务可能被中断。确定继续吗？")) return;
+      productSave.disabled = true;
+      productSave.textContent = "正在保存…";
+      try {
+        await request("/config", { method: "PATCH", body: JSON.stringify(productBody()) });
+        markRestarting();
+      } catch (error) {
+        showToast(error.message, true);
+      } finally {
+        productSave.disabled = !state.connected || state.configReadOnly;
+        productSave.textContent = "保存并重启";
+      }
+    });
+
     configForm.addEventListener("submit", async event => {
       event.preventDefault();
       if (!state.connected || !configForm.reportValidity()) return;
@@ -1033,14 +1197,7 @@
       configSave.textContent = "正在保存…";
       try {
         await request("/config", { method: "PUT", body: JSON.stringify({ content: configContent.value }) });
-        state.connected = false;
-        submitButton.disabled = true;
-        refreshButton.disabled = true;
-        relaySubmit.disabled = true;
-        relayRefresh.disabled = true;
-        configContent.disabled = true;
-        setConnection("正在重启");
-        showToast("配置已保存，服务正在重启");
+        markRestarting();
       } catch (error) {
         showToast(error.message, true);
       } finally {
@@ -1054,23 +1211,33 @@
     tokenInput.addEventListener("input", () => {
       if (state.connected && tokenInput.value.trim() !== state.token) {
         state.connected = false;
-        submitButton.disabled = true;
-        refreshButton.disabled = true;
-        relaySubmit.disabled = true;
-        relayRefresh.disabled = true;
-        configContent.disabled = true;
-        configSave.disabled = true;
+        disableControls();
         setConnection("待重新连接");
       }
     });
+    for (const button of pageButtons) {
+      button.addEventListener("click", () => showPage(button.dataset.page));
+      button.addEventListener("keydown", event => {
+        const current = pageButtons.indexOf(button);
+        const target = event.key === "Home" ? 0 : event.key === "End" ? pageButtons.length - 1
+          : event.key === "ArrowLeft" ? (current - 1 + pageButtons.length) % pageButtons.length
+          : event.key === "ArrowRight" ? (current + 1) % pageButtons.length : -1;
+        if (target < 0) return;
+        event.preventDefault();
+        showPage(pageButtons[target].dataset.page);
+        pageButtons[target].focus();
+      });
+    }
     taskType.addEventListener("change", updateTaskFields);
     refreshButton.addEventListener("click", () => refreshTasks(true).catch(error => showToast(error.message, true)));
     relayRefresh.addEventListener("click", () => refreshRelays(true).catch(error => showToast(error.message, true)));
     relayReset.addEventListener("click", resetRelayForm);
 
     setInterval(() => {
-      if (state.connected && document.visibilityState === "visible") refreshTasks().catch(() => {});
+      if (state.connected && state.page === "tasks" && document.visibilityState === "visible") refreshTasks().catch(() => {});
     }, 5000);
+
+    showPage(location.hash.slice(1) || "product");
 
     try {
       const savedToken = sessionStorage.getItem("saveany-api-token");

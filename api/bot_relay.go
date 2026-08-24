@@ -8,7 +8,10 @@ import (
 	"strconv"
 	"strings"
 
+	gotgstorage "github.com/celestix/gotgproto/storage"
 	gotgtypes "github.com/celestix/gotgproto/types"
+	"github.com/gotd/td/constant"
+	"github.com/gotd/td/tg"
 	userclient "github.com/krau/SaveAny-Bot/client/user"
 	"github.com/krau/SaveAny-Bot/database"
 	"github.com/krau/SaveAny-Bot/storage"
@@ -200,18 +203,49 @@ func resolveBotRelay(r *http.Request, req botRelayRequest) (*database.BotRelay, 
 	if userCtx == nil {
 		return nil, errors.New("userbot must be enabled before configuring Bot Relay")
 	}
-	sourceName := strings.TrimPrefix(strings.TrimSpace(req.SourceChat), "@")
+	sourceName, sourceChatID, err := parseRelaySource(req.SourceChat)
+	if err != nil {
+		return nil, err
+	}
 	targetName := strings.TrimPrefix(strings.TrimSpace(req.TargetBot), "@")
 	if sourceName == "" || targetName == "" {
 		return nil, errors.New("source_chat and target_bot are required")
 	}
-	source, err := userCtx.ResolveUsername(sourceName)
-	if err != nil {
-		return nil, fmt.Errorf("resolve source channel: %w", err)
-	}
-	sourceChannel, ok := source.(*gotgtypes.Channel)
-	if !ok || !sourceChannel.Broadcast {
-		return nil, errors.New("source_chat must be a Telegram channel username")
+	if sourceChatID != 0 {
+		inputPeer, err := userCtx.ResolveInputPeerById(sourceChatID)
+		if err != nil {
+			gotgstorage.AddPeersFromDialogs(r.Context(), userCtx.Raw, userCtx.PeerStorage)
+			inputPeer, err = userCtx.ResolveInputPeerById(sourceChatID)
+			if err != nil {
+				return nil, fmt.Errorf("resolve source channel ID: %w", err)
+			}
+		}
+		inputChannel, ok := inputPeer.(*tg.InputPeerChannel)
+		if !ok {
+			return nil, errors.New("source_chat ID must identify a Telegram channel")
+		}
+		chats, err := userCtx.Raw.ChannelsGetChannels(r.Context(), []tg.InputChannelClass{&tg.InputChannel{
+			ChannelID:  inputChannel.ChannelID,
+			AccessHash: inputChannel.AccessHash,
+		}})
+		if err != nil {
+			return nil, fmt.Errorf("load source channel: %w", err)
+		}
+		chat, ok := chats.MapChats().First()
+		sourceChannel, ok := chat.(*tg.Channel)
+		if !ok || !sourceChannel.Broadcast {
+			return nil, errors.New("source_chat ID must identify a Telegram channel")
+		}
+	} else {
+		source, err := userCtx.ResolveUsername(sourceName)
+		if err != nil {
+			return nil, fmt.Errorf("resolve source channel: %w", err)
+		}
+		sourceChannel, ok := source.(*gotgtypes.Channel)
+		if !ok || !sourceChannel.Broadcast {
+			return nil, errors.New("source_chat must be a Telegram channel username or -100... ID")
+		}
+		sourceChatID = source.GetID()
 	}
 	target, err := userCtx.ResolveUsername(targetName)
 	if err != nil {
@@ -224,7 +258,7 @@ func resolveBotRelay(r *http.Request, req botRelayRequest) (*database.BotRelay, 
 
 	return &database.BotRelay{
 		UserID:         owner.ID,
-		SourceChatID:   source.GetID(),
+		SourceChatID:   sourceChatID,
 		SourceChat:     sourceName,
 		TargetBotID:    target.GetID(),
 		TargetBot:      targetName,
@@ -232,6 +266,19 @@ func resolveBotRelay(r *http.Request, req botRelayRequest) (*database.BotRelay, 
 		TimeoutSeconds: req.TimeoutSeconds,
 		QuietSeconds:   req.QuietSeconds,
 	}, nil
+}
+
+// parseRelaySource 区分频道用户名与 Telegram Bot API 风格的频道 ID。
+func parseRelaySource(raw string) (string, int64, error) {
+	source := strings.TrimPrefix(strings.TrimSpace(raw), "@")
+	if source == "" || !strings.HasPrefix(source, "-") {
+		return source, 0, nil
+	}
+	id, err := strconv.ParseInt(source, 10, 64)
+	if err != nil || !constant.TDLibPeerID(id).IsChannel() {
+		return "", 0, errors.New("source_chat ID must use Telegram -100... channel format")
+	}
+	return source, id, nil
 }
 
 func botRelayToResponse(relay database.BotRelay) botRelayResponse {
