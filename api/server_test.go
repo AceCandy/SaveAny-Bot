@@ -25,4 +25,13 @@ func TestDashboardHandler(t *testing.T) {
 	if body := recorder.Body.String(); !strings.Contains(body, "SaveAny") || !strings.Contains(body, `id="login-view"`) || !strings.Contains(body, `id="console-shell"`) || !strings.Contains(body, `id="product-form"`) || !strings.Contains(body, `id="userbot-auth"`) || !strings.Contains(body, `id="task-form"`) || !strings.Contains(body, `id="relay-form"`) || !strings.Contains(body, `id="config-form"`) {
 		t.Fatal("dashboard content is incomplete")
 	}
+	if body := recorder.Body.String(); !strings.Contains(body, "需重启") || !strings.Contains(body, "即时生效") {
+		t.Fatal("dashboard does not distinguish configuration effects")
+	}
+	if body := recorder.Body.String(); !strings.Contains(body, `id="relay-userbot-required"`) || !strings.Contains(body, "Bot Relay 依赖已连接的 Userbot") || !strings.Contains(body, `relayFields.disabled = !available`) {
+		t.Fatal("dashboard does not explain the Bot Relay prerequisite")
+	}
+	if body := recorder.Body.String(); strings.Contains(body, "界面语言") || !strings.Contains(body, "扩展能力（按需配置）") || !strings.Contains(body, `id="api-settings-popover"`) {
+		t.Fatal("dashboard configuration hierarchy is incomplete")
+	}
 }

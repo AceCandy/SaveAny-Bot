@@ -152,10 +152,10 @@
     }
     .nav-button:hover { color: var(--text); background: rgba(255, 255, 255, .035); }
     .nav-button[aria-selected="true"] { border-color: var(--line); color: var(--text); background: var(--panel-strong); }
+    .effect-badge { display: inline-flex; flex: 0 0 auto; margin-left: 6px; padding: 3px 7px; border-radius: 999px; font-size: 10px; font-weight: 750; white-space: nowrap; }
+    .effect-badge.restart { color: var(--warning); background: rgba(255, 199, 104, .1); }
+    .effect-badge.live { color: var(--accent); background: rgba(113, 230, 174, .1); }
     .page-view { display: grid; gap: 18px; }
-    .page-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 24px 2px 4px; }
-    .page-header h1 { margin: 0; font-size: clamp(27px, 4vw, 38px); letter-spacing: -.045em; }
-    .page-header p { max-width: 520px; margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 
     .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .stat {
@@ -196,13 +196,13 @@
 	.config-editor { min-height: 560px; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 13px; tab-size: 2; }
 	.config-source { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
     .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-    .basic-settings-grid { grid-template-columns: minmax(220px, .65fr) minmax(0, 1.35fr); align-items: start; }
     .settings-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
     .settings-column { display: grid; gap: 18px; align-content: start; }
     #product-fields { display: grid; gap: 18px; }
     .settings-card { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
     .settings-card h2 { margin: 0 0 18px; font-size: 17px; }
     .settings-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .settings-description { margin: -10px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.55; }
     .setting-badge { display: inline-flex; flex: 0 0 auto; padding: 4px 8px; border-radius: 999px; color: var(--muted); background: rgba(145, 170, 158, .1); font-size: 10px; font-weight: 750; }
     .setting-badge.required { color: var(--warning); background: rgba(255, 199, 104, .1); }
     .setting-badge.optional { color: var(--blue); background: rgba(120, 183, 255, .1); }
@@ -237,6 +237,9 @@
     .advanced-settings[open] summary { margin-bottom: 14px; }
     .settings-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding-top: 2px; }
     .settings-actions p { flex: 1; margin: 0; color: var(--muted); font-size: 12px; }
+    .api-settings-popover { width: min(430px, calc(100vw - 32px)); max-height: calc(100dvh - 100px); inset: 72px 28px auto auto; margin: 0; padding: 22px; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 16px; color: var(--text); background: #102c23; box-shadow: var(--shadow); }
+    .api-settings-popover h2 { margin: 0; font-size: 19px; }
+    .api-settings-popover > p { margin: 7px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.55; }
 
     .task-list { display: grid; gap: 11px; }
     .task-card { padding: 17px; border: 1px solid var(--line); border-radius: 15px; background: rgba(4, 16, 11, .56); }
@@ -300,7 +303,7 @@
       .token-wrap { flex-basis: 100%; }
       .page-nav { gap: 4px; justify-content: space-between; }
       .nav-button { min-width: 64px; flex: 1 1 0; overflow: hidden; padding: 0 2px; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-      .page-header { align-items: flex-start; flex-direction: column; padding-top: 16px; }
+      .nav-button .effect-badge { display: none; }
       .stats { min-width: 0; grid-template-columns: repeat(2, 1fr); }
       .field-row { grid-template-columns: 1fr; }
       .first-use .setup-steps { grid-template-columns: 1fr; }
@@ -309,6 +312,7 @@
       .optional-settings > summary { align-items: flex-start; flex-direction: column; }
       .settings-actions { align-items: stretch; flex-direction: column; }
       .settings-actions .button { width: 100%; }
+      .api-settings-popover { inset: 132px 16px auto; margin: 0 auto; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -348,23 +352,23 @@
       </div>
       <div class="connection">
         <span class="status" id="connection-status" role="status">未连接</span>
+        <button class="button secondary small" type="button" popovertarget="api-settings-popover">控制台设置</button>
         <button class="button secondary small" id="disconnect-button" type="button">退出控制台</button>
       </div>
     </header>
 
     <nav class="page-nav" role="tablist" aria-label="控制台页面">
-      <button class="nav-button" id="nav-product" type="button" role="tab" aria-controls="page-product" aria-selected="true" data-page="product">产品配置</button>
+      <button class="nav-button" id="nav-product" type="button" role="tab" aria-controls="page-product" aria-selected="true" data-page="product">功能配置<span class="effect-badge restart">需重启</span></button>
       <button class="nav-button" id="nav-tasks" type="button" role="tab" aria-controls="page-tasks" aria-selected="false" data-page="tasks">任务管理</button>
-      <button class="nav-button" id="nav-relay" type="button" role="tab" aria-controls="page-relay" aria-selected="false" data-page="relay">Bot Relay</button>
-      <button class="nav-button" id="nav-advanced" type="button" role="tab" aria-controls="page-advanced" aria-selected="false" data-page="advanced">高级配置</button>
+      <button class="nav-button" id="nav-relay" type="button" role="tab" aria-controls="page-relay" aria-selected="false" data-page="relay">Bot Relay<span class="effect-badge live">即时生效</span></button>
+      <button class="nav-button" id="nav-advanced" type="button" role="tab" aria-controls="page-advanced" aria-selected="false" data-page="advanced">高级配置<span class="effect-badge restart">需重启</span></button>
     </nav>
 
     <main id="main-content" tabindex="-1">
+      <h1 class="sr-only">SaveAny 管理控制台</h1>
       <section class="page-view" id="page-product" role="tabpanel" aria-labelledby="nav-product" data-page-panel="product">
-        <div class="page-header">
-          <div><h1>产品配置</h1><p>常用设置使用表单管理，保存后服务自动重启。</p></div>
-        </div>
         <form id="product-form">
+          <input id="setting-lang" name="lang" type="hidden" value="zh-Hans">
           <fieldset id="product-fields" disabled>
             <section class="first-use" id="first-use" aria-labelledby="first-use-title">
               <h2 id="first-use-title">首次使用只需 3 步</h2>
@@ -375,17 +379,9 @@
               </ol>
             </section>
 
-            <div class="settings-grid basic-settings-grid">
-              <section class="settings-card" aria-labelledby="settings-basic-title">
-                <h2 class="settings-title" id="settings-basic-title"><span>界面语言</span><span class="setting-badge">一般无需修改</span></h2>
-                <div class="field">
-                  <label for="setting-lang">语言</label>
-                  <select id="setting-lang" name="lang" autocomplete="off"><option value="zh-Hans">简体中文</option><option value="en">English</option></select>
-                </div>
-              </section>
-
-              <section class="settings-card" aria-labelledby="settings-telegram-title">
+            <section class="settings-card" aria-labelledby="settings-telegram-title">
                 <h2 class="settings-title" id="settings-telegram-title"><span>Telegram Bot</span><span class="setting-badge required">必填</span></h2>
+                <p class="settings-description">基础能力：接收 Telegram 消息并保存文件。首次使用只需要完成这一块。</p>
                 <p class="form-note" id="telegram-config-status" role="status">登录后检查 Bot 运行状态。</p>
                 <button class="button secondary small" id="telegram-status-refresh" type="button" disabled>刷新运行状态</button>
                 <div class="field"><label for="setting-telegram-token">Telegram Bot Token（未配置时必填）</label><input id="setting-telegram-token" name="telegram-token" type="password" autocomplete="new-password" spellcheck="false" placeholder="出于安全不会显示…" aria-describedby="telegram-token-help"><p class="field-help" id="telegram-token-help">从 @BotFather 获取，与管理控制台的 API Token 不同。</p></div>
@@ -403,28 +399,15 @@
                     <div class="field"><label for="setting-media-timeout">相册等待时间（秒）</label><input id="setting-media-timeout" name="telegram-media-timeout" type="number" min="0" autocomplete="off" required></div>
                   </div>
                 </details>
-              </section>
-            </div>
+            </section>
 
             <details class="optional-settings" id="optional-settings">
-              <summary>额外功能与高级设置 <span>可选 · 默认无需修改</span></summary>
+              <summary>扩展能力（按需配置） <span>个人账号 · 网页视频 · 磁力下载 · 运行调优</span></summary>
               <div class="settings-columns">
                 <div class="settings-column">
-                  <section class="settings-card" aria-labelledby="settings-runtime-title">
-                  <h2 class="settings-title" id="settings-runtime-title"><span>运行与性能</span><span class="setting-badge">一般无需修改</span></h2>
-                  <div class="field-row">
-                    <div class="field"><label for="setting-log-level">日志级别</label><select id="setting-log-level" name="log-level" autocomplete="off"><option value="debug">Debug</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option><option value="fatal">Fatal</option></select></div>
-                    <div class="field"><label for="setting-workers">并行任务数</label><input id="setting-workers" name="workers" type="number" min="1" autocomplete="off" required></div>
-                  </div>
-                  <div class="field-row">
-                    <div class="field"><label for="setting-threads">单任务线程数</label><input id="setting-threads" name="threads" type="number" min="1" autocomplete="off" required></div>
-                    <div class="field"><label for="setting-retry">失败重试次数</label><input id="setting-retry" name="retry" type="number" min="1" autocomplete="off" required></div>
-                  </div>
-                  <div class="check-field"><input id="setting-stream" name="stream" type="checkbox" autocomplete="off"><label for="setting-stream">启用流式传输</label><button class="term-help" type="button" aria-label="流式传输会边下载边上传，节省磁盘空间，但网络不稳定时更容易失败" data-tip="边下载边上传，可节省磁盘空间；网络不稳定时更容易失败，一般保持关闭。">?</button></div>
-                  </section>
-
                   <section class="settings-card" aria-labelledby="settings-userbot-title">
-                  <h2 class="settings-title" id="settings-userbot-title"><span>Userbot（个人账号）</span><span class="setting-badge optional">可选</span></h2>
+                  <h2 class="settings-title" id="settings-userbot-title"><span>个人账号与频道 Relay</span><span class="setting-badge optional">按需启用</span></h2>
+                  <p class="settings-description">获得个人账号访问频道和使用 Bot Relay 的能力。只使用普通 Telegram Bot 时无需配置。</p>
                   <p class="field-help warning">个人账号自动化存在封号风险。请使用自己的 App ID、App Hash 和专用账号。</p>
                   <ol class="setup-steps" aria-label="Userbot 配置步骤">
                     <li id="userbot-step-config" data-state="current"><strong>保存登录设置</strong><span>填写 Telegram App ID、App Hash 和会话位置后保存重启。</span></li>
@@ -457,11 +440,26 @@
                     <p class="field-help">验证码与两步验证密码仅用于本次认证，不会写入配置。</p>
                   </div>
                   </section>
+
+                  <section class="settings-card" aria-labelledby="settings-runtime-title">
+                  <h2 class="settings-title" id="settings-runtime-title"><span>运行调优</span><span class="setting-badge">保持默认</span></h2>
+                  <p class="settings-description">调整并发、重试和磁盘占用。运行稳定前无需修改。</p>
+                  <div class="field-row">
+                    <div class="field"><label for="setting-log-level">日志级别</label><select id="setting-log-level" name="log-level" autocomplete="off"><option value="debug">Debug</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option><option value="fatal">Fatal</option></select></div>
+                    <div class="field"><label for="setting-workers">并行任务数</label><input id="setting-workers" name="workers" type="number" min="1" autocomplete="off" required></div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field"><label for="setting-threads">单任务线程数</label><input id="setting-threads" name="threads" type="number" min="1" autocomplete="off" required></div>
+                    <div class="field"><label for="setting-retry">失败重试次数</label><input id="setting-retry" name="retry" type="number" min="1" autocomplete="off" required></div>
+                  </div>
+                  <div class="check-field"><input id="setting-stream" name="stream" type="checkbox" autocomplete="off"><label for="setting-stream">启用流式传输</label><button class="term-help" type="button" aria-label="流式传输会边下载边上传，节省磁盘空间，但网络不稳定时更容易失败" data-tip="边下载边上传，可节省磁盘空间；网络不稳定时更容易失败，一般保持关闭。">?</button></div>
+                  </section>
                 </div>
 
                 <div class="settings-column">
                   <section class="settings-card" aria-labelledby="settings-download-title">
-                  <h2 class="settings-title" id="settings-download-title"><span>下载工具</span><span class="setting-badge optional">可选</span></h2>
+                  <h2 class="settings-title" id="settings-download-title"><span>网页视频下载</span><span class="setting-badge optional">需要 yt-dlp</span></h2>
+                  <p class="settings-description">安装 yt-dlp 后可保存支持网站的视频或音频。默认设置即可使用，只在需要限制画质或格式时修改。</p>
                   <div class="field-row">
                     <div class="field"><label for="setting-ytdlp-height">yt-dlp 最高分辨率</label><input id="setting-ytdlp-height" name="ytdlp-max-height" type="number" min="0" autocomplete="off" required></div>
                     <div class="field"><label for="setting-ytdlp-recode">转封装格式</label><input id="setting-ytdlp-recode" name="ytdlp-recode" autocomplete="off" placeholder="例如 mp4"></div>
@@ -470,26 +468,34 @@
                     <div class="field-label-row"><label for="setting-ytdlp-format">yt-dlp Format</label><button class="term-help" type="button" aria-label="yt-dlp Format 用于精确选择视频和音频格式；留空时使用最高分辨率设置" data-tip="用于精确选择视频和音频格式；不熟悉时留空，系统会使用最高分辨率设置。">?</button></div>
                     <input id="setting-ytdlp-format" name="ytdlp-format" autocomplete="off" placeholder="留空使用分辨率限制">
                   </div>
+                  </section>
+
+                  <section class="settings-card" aria-labelledby="settings-aria2-title">
+                  <h2 class="settings-title" id="settings-aria2-title"><span>磁力与多协议下载</span><span class="setting-badge optional">需要 Aria2</span></h2>
+                  <p class="settings-description">获得磁力链接、种子和多协议下载能力。没有单独部署 Aria2 服务时不要启用。</p>
                   <div class="field-row">
                     <div class="check-field"><input id="setting-aria2-enable" name="aria2-enable" type="checkbox" autocomplete="off"><label for="setting-aria2-enable">启用 Aria2</label><button class="term-help" type="button" aria-label="Aria2 是独立下载服务，用于磁力链接和多协议下载；未部署时不要启用" data-tip="独立下载服务，用于磁力链接和多协议下载；未部署 Aria2 时不要启用。">?</button></div>
                     <div class="field"><label for="setting-aria2-url">Aria2 RPC 地址</label><input id="setting-aria2-url" name="aria2-url" type="url" autocomplete="off" placeholder="http://localhost:6800/jsonrpc"></div>
                   </div>
                   <div class="field"><label for="setting-aria2-secret">Aria2 Secret</label><input id="setting-aria2-secret" name="aria2-secret" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
                   </section>
-
-                  <section class="settings-card" aria-labelledby="settings-api-title">
-                  <h2 class="settings-title" id="settings-api-title"><span>Web API</span><span class="setting-badge">一般无需修改</span></h2>
-                  <div class="field-row">
-                    <div class="field"><label for="setting-api-host">监听地址</label><input id="setting-api-host" name="api-host" autocomplete="off" required></div>
-                    <div class="field"><label for="setting-api-port">端口</label><input id="setting-api-port" name="api-port" type="number" min="1" max="65535" autocomplete="off" required></div>
-                  </div>
-                  <div class="field"><label for="setting-api-token">新 API Token</label><input id="setting-api-token" name="new-api-token" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
-                  <p class="field-help">修改监听地址、端口或 Token 后，请使用新地址重新登录。</p>
-                  </section>
                 </div>
               </div>
             </details>
           </fieldset>
+          <aside class="api-settings-popover" id="api-settings-popover" popover aria-labelledby="api-settings-title">
+            <h2 id="api-settings-title">控制台连接设置</h2>
+            <p>管理 Web API 的监听地址和登录 Token，一般无需修改。</p>
+            <fieldset class="field-group" id="api-settings" disabled>
+              <div class="field-row">
+                <div class="field"><label for="setting-api-host">监听地址</label><input id="setting-api-host" name="api-host" autocomplete="off" required></div>
+                <div class="field"><label for="setting-api-port">端口</label><input id="setting-api-port" name="api-port" type="number" min="1" max="65535" autocomplete="off" required></div>
+              </div>
+              <div class="field"><label for="setting-api-token">新 API Token</label><input id="setting-api-token" name="new-api-token" type="password" autocomplete="new-password" placeholder="留空保持原值"></div>
+              <p class="field-help">修改后服务会重启，请使用新地址或新 Token 重新登录。</p>
+              <button class="button submit" id="api-settings-save" type="submit">保存连接设置并重启</button>
+            </fieldset>
+          </aside>
           <p class="form-error" id="product-error" role="alert" tabindex="-1" hidden></p>
           <div class="settings-actions">
             <p>环境变量和启动参数仍具有更高优先级。</p>
@@ -499,15 +505,12 @@
       </section>
 
       <section class="page-view" id="page-tasks" role="tabpanel" aria-labelledby="nav-tasks" data-page-panel="tasks" hidden>
-        <div class="page-header">
-          <div><h1>任务管理</h1><p>创建任务并查看队列状态。</p></div>
           <div class="stats" role="group" aria-label="任务统计">
             <div class="stat"><span>全部</span><strong id="stat-total">—</strong></div>
             <div class="stat"><span>进行中</span><strong id="stat-active">—</strong></div>
             <div class="stat"><span>已完成</span><strong id="stat-completed">—</strong></div>
             <div class="stat"><span>异常</span><strong id="stat-failed">—</strong></div>
           </div>
-        </div>
 
       <div class="workspace">
         <section class="panel" aria-labelledby="create-title">
@@ -629,9 +632,6 @@
       </section>
 
       <section class="page-view" id="page-relay" role="tabpanel" aria-labelledby="nav-relay" data-page-panel="relay" hidden>
-        <div class="page-header">
-          <div><h1>Bot Relay</h1><p>把频道中的 Deep Link 转发给目标 Bot 并保存返回文件。</p></div>
-        </div>
         <div class="workspace">
           <section class="panel">
             <div class="panel-body">
@@ -640,6 +640,9 @@
               </div>
 
               <form id="relay-form">
+                <p class="form-note" id="relay-userbot-required" role="status">Bot Relay 依赖已连接的 Userbot。请先完成登录并启用 Userbot。</p>
+                <button class="button secondary" id="relay-userbot-setup" type="button">前往配置 Userbot</button>
+                <fieldset class="field-group" id="relay-fields" aria-describedby="relay-userbot-required" disabled>
                 <input id="relay-id" name="relay-id" type="hidden" autocomplete="off">
                 <div class="field">
                   <label for="relay-owner">接收用户</label>
@@ -675,6 +678,7 @@
                   <button class="button" id="relay-submit" type="submit" disabled>保存 Relay</button>
                   <button class="button secondary" id="relay-reset" type="button" hidden>取消编辑</button>
                 </div>
+                </fieldset>
               </form>
             </div>
           </section>
@@ -694,9 +698,6 @@
       </section>
 
       <section class="page-view" id="page-advanced" role="tabpanel" aria-labelledby="nav-advanced" data-page-panel="advanced" hidden>
-        <div class="page-header">
-          <div><h1>高级配置</h1><p>编辑完整 config.toml，适用于存储、用户和其他高级选项。</p></div>
-        </div>
         <section class="panel">
           <div class="panel-body">
             <div class="panel-heading">
@@ -768,15 +769,20 @@
     const refreshButton = document.querySelector("#refresh-button");
     const taskList = document.querySelector("#task-list");
     const relayForm = document.querySelector("#relay-form");
+    const relayFields = document.querySelector("#relay-fields");
     const relayOwner = document.querySelector("#relay-owner");
     const relaySubmit = document.querySelector("#relay-submit");
     const relayReset = document.querySelector("#relay-reset");
     const relayRefresh = document.querySelector("#relay-refresh");
     const relayList = document.querySelector("#relay-list");
+    const relayUserbotRequired = document.querySelector("#relay-userbot-required");
+    const relayUserbotSetup = document.querySelector("#relay-userbot-setup");
     const productForm = document.querySelector("#product-form");
     const productFields = document.querySelector("#product-fields");
     const productSave = document.querySelector("#product-save");
     const productError = document.querySelector("#product-error");
+    const apiSettings = document.querySelector("#api-settings");
+    const apiSettingsPopover = document.querySelector("#api-settings-popover");
     const firstUse = document.querySelector("#first-use");
     const optionalSettings = document.querySelector("#optional-settings");
     const telegramConfigStatus = document.querySelector("#telegram-config-status");
@@ -897,6 +903,7 @@
       telegramStatusRefresh.disabled = true;
       productFields.disabled = true;
       productSave.disabled = true;
+      apiSettings.disabled = true;
       configContent.disabled = true;
       configSave.disabled = true;
     }
@@ -953,13 +960,17 @@
     }
 
     function loadRelayControls() {
+      const available = state.connected && state.userbotStatus === "connected";
       const users = state.users.map(user => ({
         value: String(user.id),
         label: `${user.chat_id} · ${user.default_storage || "未设置默认存储"}${user.ready ? "" : "（不可用）"}`
       }));
       fillSelect(relayOwner, users, "暂无 SaveAny 用户");
-      relayOwner.disabled = !state.connected || !users.length;
-      relaySubmit.disabled = !state.connected || !state.users.some(user => user.ready);
+      relayUserbotRequired.hidden = available;
+      relayUserbotSetup.hidden = available;
+      relayFields.disabled = !available;
+      relayOwner.disabled = !available || !users.length;
+      relaySubmit.disabled = !available || !state.users.some(user => user.ready);
     }
 
     function updateTaskFields() {
@@ -1120,6 +1131,7 @@
     }
 
     function renderRelays() {
+      const available = state.connected && state.userbotStatus === "connected";
       relayList.replaceChildren();
       if (!state.relays.length) {
         const empty = element("div", "empty");
@@ -1148,9 +1160,11 @@
         const actions = element("div", "task-bottom");
         const edit = element("button", "button secondary small", "编辑");
         edit.type = "button";
+        edit.disabled = !available;
         edit.addEventListener("click", () => editRelay(relay));
         const toggle = element("button", "button secondary small", relay.enabled ? "停用" : "启用");
         toggle.type = "button";
+        toggle.disabled = !available;
         toggle.addEventListener("click", () => updateRelay(relay.id, relayBody(relay, !relay.enabled)));
         const remove = element("button", "button danger small", "删除");
         remove.type = "button";
@@ -1166,7 +1180,7 @@
     }
 
     function loadProductConfig(product = {}) {
-      setSetting("setting-lang", product.lang);
+      setSetting("setting-lang", "zh-Hans");
       setSetting("setting-workers", product.workers);
       setSetting("setting-retry", product.retry);
       setSetting("setting-threads", product.threads);
@@ -1255,6 +1269,8 @@
       if (status === "password_required") userbotCode.value = "";
       if (status === "authenticated") showToast("Userbot 认证成功，请保存配置并重启");
       renderUserbotSetup();
+      loadRelayControls();
+      renderRelays();
 
       clearTimeout(userbotPollTimer);
       if (state.connected && ["starting", "phone_required", "code_required", "password_required", "authenticating"].includes(status)) {
@@ -1347,6 +1363,7 @@
       configContent.value = data.content || "";
       productFields.disabled = state.configReadOnly;
       productSave.disabled = state.configReadOnly;
+      apiSettings.disabled = state.configReadOnly;
       configContent.disabled = state.configReadOnly;
       configSave.disabled = state.configReadOnly;
       configNote.textContent = state.configReadOnly
@@ -1513,6 +1530,10 @@
 
     relayForm.addEventListener("submit", async event => {
       event.preventDefault();
+      if (state.userbotStatus !== "connected") {
+        showToast("请先完成登录并启用 Userbot", true);
+        return;
+      }
       if (!state.connected || !relayForm.reportValidity()) return;
       const id = document.querySelector("#relay-id").value;
       const body = {
@@ -1533,7 +1554,7 @@
       } catch (error) {
         showToast(error.message, true);
       } finally {
-        relaySubmit.disabled = !state.connected || !state.users.some(user => user.ready);
+        relaySubmit.disabled = state.userbotStatus !== "connected" || !state.connected || !state.users.some(user => user.ready);
         relaySubmit.textContent = "保存 Relay";
       }
     });
@@ -1553,6 +1574,7 @@
       const activeLabel = activeSave.textContent;
       productSave.disabled = true;
       userbotNextAction.disabled = true;
+      activeSave.disabled = true;
       activeSave.textContent = "正在保存…";
       try {
         await request("/config", { method: "PATCH", body: JSON.stringify(body) });
@@ -1561,6 +1583,7 @@
         showFormError(productError, saveErrorMessage(error));
       } finally {
         productSave.disabled = !state.connected || state.configReadOnly;
+        activeSave.disabled = !state.connected || state.configReadOnly;
         activeSave.textContent = activeLabel;
         renderUserbotSetup();
       }
@@ -1620,6 +1643,14 @@
     });
     relayRefresh.addEventListener("click", () => refreshRelays(true).catch(error => showToast(error.message, true)));
     relayReset.addEventListener("click", resetRelayForm);
+    relayUserbotSetup.addEventListener("click", () => {
+      showPage("product");
+      optionalSettings.open = true;
+      document.querySelector("#settings-userbot-title").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    apiSettings.addEventListener("invalid", () => {
+      if (!apiSettingsPopover.matches(":popover-open")) apiSettingsPopover.showPopover();
+    }, true);
     userbotPhoneSubmit.addEventListener("click", () => submitUserbotAuth("phone", userbotPhone));
     userbotCodeSubmit.addEventListener("click", () => submitUserbotAuth("code", userbotCode));
     userbotPasswordSubmit.addEventListener("click", () => submitUserbotAuth("password", userbotPassword));
