@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/celestix/gotgproto"
@@ -18,10 +19,10 @@ import (
 	"github.com/krau/SaveAny-Bot/database"
 )
 
-var ectx *ext.Context
+var ectx atomic.Pointer[ext.Context]
 
 func ExtContext() *ext.Context {
-	return ectx
+	return ectx.Load()
 }
 
 func Init(ctx context.Context) <-chan struct{} {
@@ -92,9 +93,10 @@ func Init(ctx context.Context) <-chan struct{} {
 			log.FromContext(ctx).Fatalf("Failed to initialize Bot: %s", result.err)
 		}
 		handlers.Register(result.client.Dispatcher)
-		ectx = result.client.CreateContext()
+		clientCtx := result.client.CreateContext()
+		ectx.Store(clientCtx)
 		if config.C().Telegram.Userbot.Enable {
-			handlers.StartBotRelay(ctx, ectx)
+			handlers.StartBotRelay(ctx, clientCtx)
 		}
 		log.FromContext(ctx).Info("Bot initialization completed.")
 	}

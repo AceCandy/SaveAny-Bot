@@ -20,8 +20,10 @@ type ProductConfig struct {
 	Stream                    bool   `json:"stream"`
 	LogLevel                  string `json:"log_level"`
 	TelegramToken             string `json:"telegram_token"`
+	TelegramTokenConfigured   bool   `json:"telegram_token_configured"`
 	TelegramAppID             int    `json:"telegram_app_id"`
 	TelegramAppHash           string `json:"telegram_app_hash"`
+	TelegramAppHashConfigured bool   `json:"telegram_app_hash_configured"`
 	TelegramRPCRetry          int    `json:"telegram_rpc_retry"`
 	TelegramMediaGroupTimeout int    `json:"telegram_media_group_timeout"`
 	UserbotEnable             bool   `json:"userbot_enable"`
@@ -32,9 +34,11 @@ type ProductConfig struct {
 	Aria2Enable               bool   `json:"aria2_enable"`
 	Aria2URL                  string `json:"aria2_url"`
 	Aria2Secret               string `json:"aria2_secret"`
+	Aria2SecretConfigured     bool   `json:"aria2_secret_configured"`
 	APIHost                   string `json:"api_host"`
 	APIPort                   int    `json:"api_port"`
 	APIToken                  string `json:"api_token"`
+	APITokenConfigured        bool   `json:"api_token_configured"`
 }
 
 // ReadProductConfig 返回当前有效配置，敏感值留空表示不在页面回显。
@@ -47,7 +51,9 @@ func ReadProductConfig() ProductConfig {
 		Threads:                   c.Threads,
 		Stream:                    c.Stream,
 		LogLevel:                  c.Log.Level,
+		TelegramTokenConfigured:   c.Telegram.Token != "",
 		TelegramAppID:             c.Telegram.AppID,
+		TelegramAppHashConfigured: c.Telegram.AppHash != "",
 		TelegramRPCRetry:          c.Telegram.RpcRetry,
 		TelegramMediaGroupTimeout: c.Telegram.MediaGroupTimeout,
 		UserbotEnable:             c.Telegram.Userbot.Enable,
@@ -57,13 +63,18 @@ func ReadProductConfig() ProductConfig {
 		YtdlpRecode:               c.Ytdlp.Recode,
 		Aria2Enable:               c.Aria2.Enable,
 		Aria2URL:                  c.Aria2.Url,
+		Aria2SecretConfigured:     c.Aria2.Secret != "",
 		APIHost:                   c.API.Host,
 		APIPort:                   c.API.Port,
+		APITokenConfigured:        c.API.Token != "",
 	}
 }
 
 // SaveProductConfig 定点更新常用配置，未填写的敏感字段保持原值。
 func SaveProductConfig(product ProductConfig) error {
+	if strings.TrimSpace(product.TelegramToken) == "" && strings.TrimSpace(C().Telegram.Token) == "" {
+		return errors.New("Telegram Bot Token 不能为空")
+	}
 	if err := product.validate(); err != nil {
 		return err
 	}
@@ -109,32 +120,46 @@ func SaveProductConfig(product ProductConfig) error {
 	})
 }
 
+// DisableUserbot 在注销个人账号前关闭 Userbot，避免重启后再次自动登录。
+func DisableUserbot() error {
+	return updateManagedConfig(func(original []byte) ([]byte, error) {
+		updated, err := patchProductTOML(original, []productConfigValue{{"telegram.userbot", "enable", false}})
+		if err != nil {
+			return nil, err
+		}
+		if err := ValidateTOML(updated); err != nil {
+			return nil, fmt.Errorf("validate config file: %w", err)
+		}
+		return updated, nil
+	})
+}
+
 func (p ProductConfig) validate() error {
 	if p.Lang != "zh-Hans" && p.Lang != "en" {
-		return errors.New("lang must be zh-Hans or en")
+		return errors.New("语言必须为简体中文或 English")
 	}
 	if p.Workers < 1 || p.Retry < 1 || p.Threads < 1 {
-		return errors.New("workers, retry and threads must be at least 1")
+		return errors.New("并行任务数、失败重试次数和单任务线程数必须至少为 1")
 	}
 	switch p.LogLevel {
 	case "debug", "info", "warn", "error", "fatal":
 	default:
-		return errors.New("invalid log level")
+		return errors.New("日志级别无效")
 	}
 	if p.TelegramAppID < 1 || p.TelegramRPCRetry < 0 || p.TelegramMediaGroupTimeout < 0 {
-		return errors.New("invalid Telegram settings")
+		return errors.New("Telegram App ID 必须大于 0，重试次数和相册等待时间不能为负数")
 	}
 	if p.UserbotEnable && strings.TrimSpace(p.UserbotSession) == "" {
-		return errors.New("userbot session is required when userbot is enabled")
+		return errors.New("启用 Userbot 时必须填写会话文件位置")
 	}
 	if p.YtdlpMaxHeight < 0 {
-		return errors.New("yt-dlp max height cannot be negative")
+		return errors.New("yt-dlp 最高分辨率不能为负数")
 	}
 	if p.Aria2Enable && strings.TrimSpace(p.Aria2URL) == "" {
-		return errors.New("Aria2 URL is required when Aria2 is enabled")
+		return errors.New("启用 Aria2 时必须填写 RPC 地址")
 	}
 	if strings.TrimSpace(p.APIHost) == "" || p.APIPort < 1 || p.APIPort > 65535 {
-		return errors.New("invalid API listen address")
+		return errors.New("Web API 监听地址不能为空，端口必须在 1 到 65535 之间")
 	}
 	return nil
 }

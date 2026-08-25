@@ -8,6 +8,8 @@ SaveAnyBot uses the toml format for its configuration files. You can learn more 
 
 SaveAnyBot needs to read a `config.toml` file in the working directory as its configuration file. If this file is missing, a default file will be created, and the bot will attempt to load configuration from environment variables.
 
+After enabling the Web API and configuring its management token, open the web dashboard and enter that token to sign in. For first-time setup, follow the three steps on the Product Configuration page: the basic section only contains the Telegram settings required to run the Bot and the interface language, which normally needs no change. Userbot, runtime tuning, download tools, and Web API settings are under the collapsed “Extra Features and Advanced Settings” section and only need to be configured when used.
+
 Here is an example of a minimal configuration file:
 
 ```toml
@@ -72,10 +74,12 @@ proxy = "socks5://127.0.0.1:7890"
 {{< hint warning >}}
 After enabling userbot integration, the bot can download files from private channels and groups, but there is an unavoidable risk of the account being banned.
 <br />
-On the first start after enabling userbot, you need to input phone number, 2FA and verification code in the terminal.
-<br />
-If you deploy with Docker, please run the container with `-it` for an interactive environment, then perform the login.
+Always use your own API ID and API Hash, and never share the verification code or 2FA password.
 {{< /hint >}}
+
+The first login can be completed from the web dashboard. The Userbot card guides you through saving the App ID, App Hash, and session path, logging in to the account, and enabling Userbot with a restart. If the listen address and management API token remain unchanged, the page reconnects only after detecting a new service instance. The dashboard shows the active Bot and Userbot accounts; a connected Userbot can be disabled, logged out, and restarted with “Log out and switch account.” Verification codes and passwords are never written to the configuration.
+
+Interactive terminal login remains available. For Docker, run the login flow once with `-it`. Later starts reuse the generated session file and do not ask for the credentials again.
 
 ```toml
 [telegram]

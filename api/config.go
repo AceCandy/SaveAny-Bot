@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/charmbracelet/log"
 	"github.com/krau/SaveAny-Bot/config"
 )
 
@@ -32,15 +33,16 @@ func configFileHandler(restart func()) http.HandlerFunc {
 			decoder.DisallowUnknownFields()
 			var req config.ProductConfig
 			if err := decoder.Decode(&req); err != nil {
-				WriteError(w, http.StatusBadRequest, "invalid_request", "failed to decode request body: "+err.Error())
+				WriteError(w, http.StatusBadRequest, "invalid_request", "提交内容格式不正确")
 				return
 			}
 			if restart == nil {
-				WriteError(w, http.StatusServiceUnavailable, "restart_unavailable", "restart is not available")
+				WriteError(w, http.StatusServiceUnavailable, "restart_unavailable", "当前服务无法自动重启")
 				return
 			}
 			if err := config.SaveProductConfig(req); err != nil {
-				WriteError(w, http.StatusBadRequest, "config_save_failed", err.Error())
+				log.FromContext(r.Context()).Errorf("Failed to save product config: %v", err)
+				WriteError(w, http.StatusBadRequest, "config_save_failed", "配置保存失败，请检查必填项和配置文件权限")
 				return
 			}
 			if err := WriteJSON(w, http.StatusOK, map[string]string{"message": "config saved; restarting"}); err == nil {
@@ -52,15 +54,15 @@ func configFileHandler(restart func()) http.HandlerFunc {
 			decoder.DisallowUnknownFields()
 			var req configFileRequest
 			if err := decoder.Decode(&req); err != nil {
-				WriteError(w, http.StatusBadRequest, "invalid_request", "failed to decode request body: "+err.Error())
+				WriteError(w, http.StatusBadRequest, "invalid_request", "提交内容格式不正确")
 				return
 			}
 			if restart == nil {
-				WriteError(w, http.StatusServiceUnavailable, "restart_unavailable", "restart is not available")
+				WriteError(w, http.StatusServiceUnavailable, "restart_unavailable", "当前服务无法自动重启")
 				return
 			}
 			if err := config.SaveManagedConfig(req.Content); err != nil {
-				WriteError(w, http.StatusBadRequest, "config_save_failed", err.Error())
+				WriteError(w, http.StatusBadRequest, "config_save_failed", "配置保存失败，请检查 TOML 格式和配置文件权限")
 				return
 			}
 			if err := WriteJSON(w, http.StatusOK, map[string]string{"message": "config saved; restarting"}); err == nil {

@@ -58,6 +58,12 @@ base_path = "./downloads"
 	if response.ReadOnly || response.Source != path || response.Product.Workers != 2 || strings.Contains(response.Content, "api-secret") {
 		t.Fatalf("unexpected GET response: %+v", response)
 	}
+	if !response.Product.TelegramTokenConfigured || !response.Product.TelegramAppHashConfigured || !response.Product.Aria2SecretConfigured || !response.Product.APITokenConfigured {
+		t.Fatalf("configured secrets were not reported: %+v", response.Product)
+	}
+	if response.Product.TelegramToken != "" || response.Product.TelegramAppHash != "" || response.Product.Aria2Secret != "" || response.Product.APIToken != "" {
+		t.Fatalf("sensitive values were exposed: %+v", response.Product)
+	}
 
 	response.Content = strings.Replace(response.Content, "workers = 2", "workers = 6", 1)
 	body, err := json.Marshal(configFileRequest{Content: response.Content})
@@ -81,6 +87,18 @@ base_path = "./downloads"
 	}
 
 	restarted = false
+	invalidProduct := response.Product
+	invalidProduct.Workers = 0
+	invalidBody, err := json.Marshal(invalidProduct)
+	if err != nil {
+		t.Fatalf("encode invalid product config: %v", err)
+	}
+	invalidRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(invalidRecorder, httptest.NewRequest(http.MethodPatch, "/api/v1/config", bytes.NewReader(invalidBody)))
+	if invalidRecorder.Code != http.StatusBadRequest || !strings.Contains(invalidRecorder.Body.String(), "配置保存失败，请检查必填项和配置文件权限") || restarted {
+		t.Fatalf("invalid PATCH status = %d, restarted = %t, body = %s", invalidRecorder.Code, restarted, invalidRecorder.Body.String())
+	}
+
 	response.Product.Workers = 7
 	patchBody, err := json.Marshal(response.Product)
 	if err != nil {
