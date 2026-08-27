@@ -35,3 +35,9 @@ func TestDashboardHandler(t *testing.T) {
 		t.Fatal("dashboard configuration hierarchy is incomplete")
 	}
 }
+
+func TestDashboardLogDatePlaceholderIsEmpty(t *testing.T) {
+	if !strings.Contains(string(dashboardHTML), `<select id="log-date" name="log-date" disabled><option value="">连接后加载</option></select>`) {
+		t.Fatal("log date placeholder must not be submitted as a date")
+	}
+}
