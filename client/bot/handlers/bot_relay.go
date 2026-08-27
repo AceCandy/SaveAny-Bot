@@ -73,12 +73,17 @@ func (m *botRelayManager) handleUpdate(ctx *ext.Context, update *ext.Update) err
 	if message == nil || message.Message == nil || message.Out {
 		return dispatcher.ContinueGroups
 	}
+	chatID := update.EffectiveChat().GetID()
 	switch update.UpdateClass.(type) {
-	case *tg.UpdateEditChannelMessage, *tg.UpdateEditMessage, *tg.UpdateDeleteChannelMessages, *tg.UpdateDeleteMessages:
+	case *tg.UpdateEditMessage:
+		if _, ok := message.PeerID.(*tg.PeerUser); ok && m.activeTarget.Load() == chatID {
+			log.FromContext(ctx).Debug("Ignoring Bot Relay response", "reason", "edited_message", "chat_id", chatID, "message_id", message.ID)
+		}
+		return dispatcher.ContinueGroups
+	case *tg.UpdateEditChannelMessage, *tg.UpdateDeleteChannelMessages, *tg.UpdateDeleteMessages:
 		return dispatcher.ContinueGroups
 	}
 
-	chatID := update.EffectiveChat().GetID()
 	switch message.PeerID.(type) {
 	case *tg.PeerChannel:
 		relays, err := database.GetEnabledBotRelaysBySourceChatID(ctx, chatID)
@@ -93,11 +98,20 @@ func (m *botRelayManager) handleUpdate(ctx *ext.Context, update *ext.Update) err
 		}
 		return dispatcher.ContinueGroups
 	case *tg.PeerUser:
-		if m.activeTarget.Load() != chatID {
+		activeTarget := m.activeTarget.Load()
+		if activeTarget != chatID {
+			if sender, ok := message.FromID.(*tg.PeerUser); ok && sender.UserID == activeTarget {
+				log.FromContext(ctx).Debug("Ignoring Bot Relay response", "reason", "chat_mismatch", "chat_id", chatID, "active_target", activeTarget, "message_id", message.ID)
+			}
 			return dispatcher.ContinueGroups
 		}
 		sender, ok := message.FromID.(*tg.PeerUser)
 		if !ok || sender.UserID != chatID {
+			senderID := int64(0)
+			if ok {
+				senderID = sender.UserID
+			}
+			log.FromContext(ctx).Debug("Ignoring Bot Relay response", "reason", "sender_mismatch", "chat_id", chatID, "sender_id", senderID, "sender_type", fmt.Sprintf("%T", message.FromID), "message_id", message.ID)
 			return dispatcher.ContinueGroups
 		}
 		select {
@@ -171,6 +185,7 @@ func (m *botRelayManager) process(request botRelayRequest) {
 		m.fail(request, fmt.Errorf("send relay command: %w", err))
 		return
 	}
+	logger.Debug("Sent Bot Relay command", "target_bot", request.relay.TargetBot, "target_bot_id", request.relay.TargetBotID, "message_id", sent.Message.ID)
 
 	timeout := time.NewTimer(time.Duration(max(request.relay.TimeoutSeconds, 1)) * time.Second)
 	defer timeout.Stop()
@@ -182,18 +197,25 @@ func (m *botRelayManager) process(request botRelayRequest) {
 		select {
 		case response := <-m.responses:
 			if !relayResponseMatches(response.message, sent.Message.ID) {
+				replyToMessageID := 0
+				if reply, ok := response.message.ReplyTo.(*tg.MessageReplyHeader); ok {
+					replyToMessageID = reply.ReplyToMsgID
+				}
+				logger.Debug("Ignoring Bot Relay response", "reason", "response_not_matched", "start_message_id", sent.Message.ID, "message_id", response.message.ID, "reply_to_message_id", replyToMessageID)
 				continue
 			}
 			media, ok := response.message.GetMedia()
 			if !ok || media == nil {
-				if strings.Contains(strings.ToLower(response.message.GetMessage()), "pending") {
+				pending := strings.Contains(strings.ToLower(response.message.GetMessage()), "pending")
+				logger.Debug("Ignoring Bot Relay response", "reason", "response_has_no_media", "message_id", response.message.ID, "text_length", len(response.message.GetMessage()), "pending", pending)
+				if pending {
 					m.editStatus(request, i18nk.BotMsgRelayPending, map[string]any{"Bot": request.relay.TargetBot})
 				}
 				continue
 			}
 			file, err := relayFile(response.ctx, response.message, media)
 			if err != nil {
-				logger.Warn("Ignoring unsupported relay media", "error", err)
+				logger.Warn("Ignoring unsupported relay media", "message_id", response.message.ID, "media_type", media.TypeName(), "error", err)
 				continue
 			}
 			files = append(files, file)
