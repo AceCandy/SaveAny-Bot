@@ -195,6 +195,9 @@
 	.relay-actions .button { flex: 1; }
 	.config-editor { min-height: 560px; font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 13px; tab-size: 2; }
 	.config-source { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; }
+    .log-toolbar { display: flex; align-items: end; gap: 12px; margin-bottom: 14px; }
+    .log-toolbar .field { width: min(240px, 100%); }
+    .log-output { min-height: 520px; max-height: 70dvh; margin: 0; padding: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; color: #d9ede3; background: rgba(3, 12, 8, .82); font: 12px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
     .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .settings-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
     .settings-column { display: grid; gap: 18px; align-content: start; }
@@ -312,6 +315,8 @@
       .optional-settings > summary { align-items: flex-start; flex-direction: column; }
       .settings-actions { align-items: stretch; flex-direction: column; }
       .settings-actions .button { width: 100%; }
+      .log-toolbar { align-items: stretch; flex-direction: column; }
+      .log-toolbar .field, .log-toolbar .button { width: 100%; }
       .api-settings-popover { inset: 132px 16px auto; margin: 0 auto; }
     }
 
@@ -361,6 +366,7 @@
       <button class="nav-button" id="nav-product" type="button" role="tab" aria-controls="page-product" aria-selected="true" data-page="product">功能配置<span class="effect-badge restart">需重启</span></button>
       <button class="nav-button" id="nav-tasks" type="button" role="tab" aria-controls="page-tasks" aria-selected="false" data-page="tasks">任务管理</button>
       <button class="nav-button" id="nav-relay" type="button" role="tab" aria-controls="page-relay" aria-selected="false" data-page="relay">Bot Relay<span class="effect-badge live">即时生效</span></button>
+      <button class="nav-button" id="nav-logs" type="button" role="tab" aria-controls="page-logs" aria-selected="false" data-page="logs">运行日志</button>
       <button class="nav-button" id="nav-advanced" type="button" role="tab" aria-controls="page-advanced" aria-selected="false" data-page="advanced">高级配置<span class="effect-badge restart">需重启</span></button>
     </nav>
 
@@ -697,6 +703,35 @@
         </div>
       </section>
 
+      <section class="page-view" id="page-logs" role="tabpanel" aria-labelledby="nav-logs" data-page-panel="logs" hidden>
+        <section class="panel">
+          <div class="panel-body">
+            <div class="panel-heading">
+              <div><h2 id="logs-title">运行日志</h2><p>按服务本地日期保存，最新日志显示在最上方。</p></div>
+            </div>
+            <div class="log-toolbar">
+              <div class="field">
+                <label for="log-date">日志日期</label>
+                <select id="log-date" name="log-date" disabled><option>连接后加载</option></select>
+              </div>
+              <div class="field">
+                <label for="log-level">最低级别</label>
+                <select id="log-level" name="log-level" disabled>
+                  <option value="debug">DEBUG 及以上</option>
+                  <option value="info" selected>INFO 及以上</option>
+                  <option value="warn">WARN 及以上</option>
+                  <option value="error">ERROR 及以上</option>
+                  <option value="fatal">FATAL</option>
+                </select>
+              </div>
+              <button class="button secondary" id="log-refresh" type="button" disabled>刷新日志</button>
+            </div>
+            <p class="form-note" id="log-summary" role="status">每次显示最近 500 行。</p>
+            <pre class="log-output" id="log-output" tabindex="0" aria-label="运行日志内容">连接后选择日期查看日志。</pre>
+          </div>
+        </section>
+      </section>
+
       <section class="page-view" id="page-advanced" role="tabpanel" aria-labelledby="nav-advanced" data-page-panel="advanced" hidden>
         <section class="panel">
           <div class="panel-body">
@@ -748,6 +783,7 @@
     };
     const sourceText = { api: "HTTP API", bot: "Telegram Bot", relay: "Bot Relay" };
     const state = { connected: false, token: "", instanceID: "", storages: [], tasks: [], users: [], relays: [], page: "product", configReadOnly: true, userbotStatus: "idle", userbotReady: false, telegramAppID: 0, telegramAppHashConfigured: false, userbotSession: "", apiHost: "", apiPort: 0 };
+    let logRequestID = 0;
 
     const pageButtons = [...document.querySelectorAll("[data-page]")];
     const pagePanels = [...document.querySelectorAll("[data-page-panel]")];
@@ -777,6 +813,11 @@
     const relayList = document.querySelector("#relay-list");
     const relayUserbotRequired = document.querySelector("#relay-userbot-required");
     const relayUserbotSetup = document.querySelector("#relay-userbot-setup");
+    const logDate = document.querySelector("#log-date");
+    const logLevel = document.querySelector("#log-level");
+    const logRefresh = document.querySelector("#log-refresh");
+    const logSummary = document.querySelector("#log-summary");
+    const logOutput = document.querySelector("#log-output");
     const productForm = document.querySelector("#product-form");
     const productFields = document.querySelector("#product-fields");
     const productSave = document.querySelector("#product-save");
@@ -900,6 +941,9 @@
       refreshButton.disabled = true;
       relaySubmit.disabled = true;
       relayRefresh.disabled = true;
+      logDate.disabled = true;
+      logLevel.disabled = true;
+      logRefresh.disabled = true;
       telegramStatusRefresh.disabled = true;
       productFields.disabled = true;
       productSave.disabled = true;
@@ -1355,6 +1399,37 @@
       if (showSuccess) showToast("Relay 路由已刷新");
     }
 
+    function renderLogs(data) {
+      const dates = Array.isArray(data.dates) ? data.dates : [];
+      const lines = Array.isArray(data.lines) ? data.lines : [];
+      logDate.replaceChildren();
+      if (!dates.length) {
+        logDate.add(new Option("暂无日志", ""));
+      } else {
+        for (const date of dates) logDate.add(new Option(date, date, false, date === data.date));
+      }
+      logDate.disabled = !state.connected || !dates.length;
+      logLevel.disabled = !state.connected;
+      logOutput.textContent = lines.length ? lines.join("\n") : "该日期暂无日志。";
+      logSummary.textContent = `${data.date || "当前日期"} · ${logLevel.value.toUpperCase()} 及以上 · 显示 ${lines.length} 行 · 最新在上`;
+    }
+
+    async function refreshLogs(showSuccess = false) {
+      const requestID = ++logRequestID;
+      logRefresh.disabled = true;
+      try {
+        const params = new URLSearchParams({ level: logLevel.value, limit: "500" });
+        if (logDate.value) params.set("date", logDate.value);
+        const query = `?${params}`;
+        const data = await request(`/logs${query}`);
+        if (requestID !== logRequestID) return;
+        renderLogs(data);
+        if (showSuccess) showToast("运行日志已刷新");
+      } finally {
+        if (requestID === logRequestID) logRefresh.disabled = !state.connected;
+      }
+    }
+
     async function loadConfig() {
       const data = await request("/config");
       state.configReadOnly = Boolean(data.read_only);
@@ -1405,9 +1480,11 @@
         await loadUserbotAuth();
         refreshButton.disabled = false;
         relayRefresh.disabled = false;
+        logRefresh.disabled = false;
         telegramStatusRefresh.disabled = false;
         setConnection("控制台已连接", "ok");
         showConsole();
+        if (state.page === "logs") await refreshLogs();
         showToast(`控制台已连接，发现 ${state.storages.length} 个存储`);
         return true;
       } catch (error) {
@@ -1616,7 +1693,10 @@
       showLogin("", true);
     });
     for (const button of pageButtons) {
-      button.addEventListener("click", () => showPage(button.dataset.page));
+      button.addEventListener("click", () => {
+        showPage(button.dataset.page);
+        if (button.dataset.page === "logs" && state.connected) refreshLogs().catch(error => showToast(error.message, true));
+      });
       button.addEventListener("keydown", event => {
         const current = pageButtons.indexOf(button);
         const target = event.key === "Home" ? 0 : event.key === "End" ? pageButtons.length - 1
@@ -1624,7 +1704,9 @@
           : event.key === "ArrowRight" ? (current + 1) % pageButtons.length : -1;
         if (target < 0) return;
         event.preventDefault();
-        showPage(pageButtons[target].dataset.page);
+        const page = pageButtons[target].dataset.page;
+        showPage(page);
+        if (page === "logs" && state.connected) refreshLogs().catch(error => showToast(error.message, true));
         pageButtons[target].focus();
       });
     }
@@ -1642,6 +1724,9 @@
       }
     });
     relayRefresh.addEventListener("click", () => refreshRelays(true).catch(error => showToast(error.message, true)));
+    logRefresh.addEventListener("click", () => refreshLogs(true).catch(error => showToast(error.message, true)));
+    logDate.addEventListener("change", () => refreshLogs().catch(error => showToast(error.message, true)));
+    logLevel.addEventListener("change", () => refreshLogs().catch(error => showToast(error.message, true)));
     relayReset.addEventListener("click", resetRelayForm);
     relayUserbotSetup.addEventListener("click", () => {
       showPage("product");

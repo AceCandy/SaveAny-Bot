@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	userclient "github.com/krau/SaveAny-Bot/client/user"
 	"github.com/krau/SaveAny-Bot/common/cache"
 	"github.com/krau/SaveAny-Bot/common/i18n"
+	"github.com/krau/SaveAny-Bot/common/logfile"
 	"github.com/krau/SaveAny-Bot/common/utils/fsutil"
 	"github.com/krau/SaveAny-Bot/config"
 	"github.com/krau/SaveAny-Bot/core"
@@ -38,6 +40,18 @@ func Run(cmd *cobra.Command, _ []string) {
 	configFile := config.GetConfigFile(cmd)
 	if err := config.Init(ctx, configFile); err != nil {
 		logger.Fatal("Init failed", "error", err)
+	}
+	dailyLog, err := logfile.NewWriter(logfile.Directory)
+	if err != nil {
+		logger.Warn("Failed to initialize file logging", "error", err)
+	} else {
+		logger.SetOutput(io.MultiWriter(os.Stdout, dailyLog))
+		defer func() {
+			logger.SetOutput(os.Stdout)
+			if err := dailyLog.Close(); err != nil {
+				logger.Error("Failed to close log file", "error", err)
+			}
+		}()
 	}
 
 	level, err := log.ParseLevel(strings.TrimSpace(config.C().Log.Level))

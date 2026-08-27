@@ -64,6 +64,7 @@ func NewServer(ctx context.Context, restart func()) *Server {
 	mux.HandleFunc("/api/v1/config", configFileHandler(restart))
 	mux.HandleFunc("/api/v1/status", runtimeStatusHandler)
 	mux.HandleFunc("/api/v1/userbot/auth", newUserbotAuthManager(ctx, restart).Handler)
+	mux.HandleFunc("/api/v1/logs", logsHandler)
 
 	// 404 处理
 	mux.HandleFunc("/", NotFoundHandler)

@@ -157,6 +157,8 @@ token = "your-token"
 
 - `level`: 日志级别, 可选 `debug`, `info`, `warn`, `error`, `fatal`. 默认为 `info`.
 
+日志会同时输出到标准输出和 `data/logs/YYYY-MM-DD.log`. 启用 HTTP API 后，可在 Web 控制台的“运行日志”页面按日期和最低日志级别查看最近的日志；请务必配置 API Token，避免运行信息泄露。
+
 ```toml
 [log]
 level = "info"

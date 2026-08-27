@@ -157,6 +157,8 @@ token = "your-token"
 
 - `level`: Log level. One of `debug`, `info`, `warn`, `error`, `fatal`. Default is `info`.
 
+Logs are written to both standard output and `data/logs/YYYY-MM-DD.log`. When the HTTP API is enabled, recent logs can be viewed by date and minimum log level on the web dashboard's Runtime Logs page. Always configure an API token to prevent runtime information from being exposed.
+
 ```toml
 [log]
 level = "info"

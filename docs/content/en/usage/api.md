@@ -48,7 +48,7 @@ On authentication failure, the server returns `401`:
 
 ## Web Dashboard
 
-After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. It provides separate Product Settings, Tasks, Bot Relay, and Advanced Settings pages. Common options use a form, while the complete `config.toml` remains available under Advanced Settings.
+After starting the API, open `http://<server-address>:<port>/` to use the built-in dashboard. It provides Product Settings, Tasks, Bot Relay, Runtime Logs, and Advanced Settings pages. Common options use a form, while the complete `config.toml` remains available under Advanced Settings.
 
 {{< hint info >}}
 The token is stored only in the current browser session's `sessionStorage`. Tokens, passwords, and keys in the global configuration are hidden behind unique placeholders. Keep a placeholder to preserve its original value, or replace it with a new value.
@@ -186,6 +186,12 @@ The source must be a Telegram channel accessible to the userbot and may be an `@
 ```
 
 Remote HTTP(S) configuration sources cannot be saved through this endpoint.
+
+---
+
+### GET /api/v1/logs — Read Runtime Logs
+
+Reads the latest logs by date. `date` uses `YYYY-MM-DD` and defaults to the newest available log date. `level` accepts `debug`, `info`, `warn`, `error`, or `fatal` and returns that level and above; it defaults to `debug`. `limit` defaults to 500 and has a maximum of 2000. The response returns `dates` newest first and `lines` in reverse chronological order.
 
 ---
 
