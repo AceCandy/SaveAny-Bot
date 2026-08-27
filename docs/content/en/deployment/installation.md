@@ -130,16 +130,7 @@ docker run -d --name saveany-bot \
 ```
 
 {{< hint info >}}
-About Docker image variants
-<br />
-<ul>
-<li>Default: Includes all features and dependencies, larger in size. Use this if you don't have special requirements.</li>
-<li>micro: Slimmed-down image with some optional dependencies removed, smaller in size.</li>
-<li>pico: Minimal image containing only core features, smallest in size.</li>
-</ul>
-You can pull different variants by specifying tags, for example: <code>ghcr.io/acecandy/saveany-bot:micro</code>
-<br />
-For more details about the variants, see the Dockerfile in the project root.
+Automated releases currently update only the default <code>linux/amd64</code> image, including the <code>latest</code> and version tags. The <code>micro</code>, <code>pico</code>, and <code>arm64</code> tags are not currently updated automatically and may point to older releases.
 {{< /hint >}}
 
 ## Updates

@@ -130,16 +130,7 @@ docker run -d --name saveany-bot \
 ```
 
 {{< hint info >}}
-关于 docker 镜像的变体版本
-<br />
-<ul>
-<li>默认版本: 包含所有功能和依赖, 体积较大. 如果没有特殊需要, 请使用此版本</li>
-<li>micro: 精简版本, 去除部分可选依赖, 体积较小</li>
-<li>pico: 极简版本, 仅包含核心功能, 体积最小</li>
-</ul>
-你可以根据需要, 通过指定不同的标签来拉取合适的版本, 例如: <code>ghcr.io/acecandy/saveany-bot:micro</code>
-<br />
-关于变体版本的更详细的区别, 请参考项目根目录下的 Dockerfile 文件.
+官方自动发布当前只更新默认版 <code>linux/amd64</code> 镜像，包括 <code>latest</code> 和版本号标签。<code>micro</code>、<code>pico</code> 与 <code>arm64</code> 标签暂不自动更新，现有标签可能对应旧版本。
 {{< /hint >}}
 
 ## 更新
