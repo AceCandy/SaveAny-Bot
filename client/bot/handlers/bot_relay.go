@@ -106,7 +106,7 @@ func (m *botRelayManager) handleUpdate(ctx *ext.Context, update *ext.Update) err
 			return dispatcher.ContinueGroups
 		}
 		sender, ok := message.FromID.(*tg.PeerUser)
-		if !ok || sender.UserID != chatID {
+		if message.FromID != nil && (!ok || sender.UserID != chatID) {
 			senderID := int64(0)
 			if ok {
 				senderID = sender.UserID

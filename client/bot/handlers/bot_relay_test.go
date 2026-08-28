@@ -5,8 +5,43 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/celestix/gotgproto/dispatcher"
+	"github.com/celestix/gotgproto/ext"
+	"github.com/celestix/gotgproto/types"
 	"github.com/gotd/td/tg"
 )
+
+func TestBotRelayAcceptsPrivateResponseWithoutSender(t *testing.T) {
+	const targetID int64 = 42
+	manager := &botRelayManager{
+		ctx:       t.Context(),
+		responses: make(chan botRelayResponse, 1),
+	}
+	manager.activeTarget.Store(targetID)
+	update := &ext.Update{
+		EffectiveMessage: &types.Message{Message: &tg.Message{
+			ID:     7,
+			PeerID: &tg.PeerUser{UserID: targetID},
+		}},
+		Entities: &tg.Entities{Users: map[int64]*tg.User{targetID: {ID: targetID}}},
+	}
+	ctx := &ext.Context{Context: t.Context()}
+
+	if err := manager.handleUpdate(ctx, update); err != dispatcher.EndGroups {
+		t.Fatalf("handleUpdate() error = %v; want %v", err, dispatcher.EndGroups)
+	}
+	if got := (<-manager.responses).message.ID; got != 7 {
+		t.Fatalf("response message ID = %d; want 7", got)
+	}
+
+	update.EffectiveMessage.FromID = &tg.PeerUser{UserID: 99}
+	if err := manager.handleUpdate(ctx, update); err != dispatcher.ContinueGroups {
+		t.Fatalf("handleUpdate() error = %v; want %v", err, dispatcher.ContinueGroups)
+	}
+	if len(manager.responses) != 0 {
+		t.Fatal("handleUpdate() queued a response from a mismatched sender")
+	}
+}
 
 func TestParseRelayDeepLink(t *testing.T) {
 	tests := []struct {
