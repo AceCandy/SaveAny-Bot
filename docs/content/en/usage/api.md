@@ -153,15 +153,16 @@ Example create request:
   "target_bot": "btfffbot",
   "enabled": true,
   "timeout_seconds": 900,
-  "quiet_seconds": 5
+  "quiet_seconds": 5,
+  "scan_interval_minutes": 5
 }
 ```
 
-The source must be a Telegram channel accessible to the userbot and may be an `@username`, a `username`, or a Bot API-style `-100...` channel ID. The target must be a bot. `timeout_seconds` accepts 1–86400 seconds; `quiet_seconds` accepts 1–300 seconds and cannot exceed the timeout.
+The source must be a Telegram channel accessible to the userbot and may be an `@username`, a `username`, or a Bot API-style `-100...` channel ID. The target must be a bot. Relay does not process source channel updates in real time; it scans incrementally every `scan_interval_minutes` (default 5, range 1–1440). The first scan processes the latest 10 messages. Later scans page back to the returned `last_message_id` and process newer messages in ascending ID order; this field is `null` before the first scan. The GET response's `history` keeps the latest 20 message results with `message_id`, `success`, `error`, and `processed_at`; retries update the existing message record. `timeout_seconds` accepts 1–86400 seconds; `quiet_seconds` accepts 1–300 seconds and cannot exceed the timeout.
 
 ### PUT/DELETE /api/v1/bot-relays/:id — Update or Delete a Relay
 
-`PUT` uses the same request body as the create endpoint. New channel Deep Links use the updated route immediately.
+`PUT` uses the same request body as the create endpoint. Changing the source channel or target bot resets `last_message_id`, clears the old history, and causes the next scan to process the latest 10 messages again.
 
 ---
 

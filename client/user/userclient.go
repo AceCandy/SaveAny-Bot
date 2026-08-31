@@ -82,7 +82,7 @@ func Login(ctx context.Context) (*gotgproto.Client, error) {
 		return nil, login.err
 	}
 	client = login.client
-	client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.All, dispatchRelayMessage))
+	client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.ChatType(filters.ChatTypeUser), dispatchRelayMessage))
 	client.Dispatcher.AddHandler(handlers.NewMessage(filters.Message.Media, func(ctx *ext.Context, u *ext.Update) error {
 		switch u.UpdateClass.(type) {
 		case *tg.UpdateEditChannelMessage, *tg.UpdateEditMessage, *tg.UpdateDeleteChannelMessages, *tg.UpdateDeleteMessages:

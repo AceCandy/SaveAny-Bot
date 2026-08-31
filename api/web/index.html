@@ -675,11 +675,18 @@
                     <input id="relay-quiet" name="relay-quiet" type="number" min="1" max="300" value="5" autocomplete="off" required>
                   </div>
                 </div>
-                <div class="field">
-                  <label for="relay-enabled">状态</label>
-                  <select id="relay-enabled" name="relay-enabled" autocomplete="off"><option value="true" selected>启用</option><option value="false">停用</option></select>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="relay-scan-interval">扫描间隔（分钟）</label>
+                    <input id="relay-scan-interval" name="relay-scan-interval" type="number" min="1" max="1440" value="5" autocomplete="off" required>
+                    <p class="field-help">首次处理最新 10 条；后续自动翻页到上次进度。</p>
+                  </div>
+                  <div class="field">
+                    <label for="relay-enabled">状态</label>
+                    <select id="relay-enabled" name="relay-enabled" autocomplete="off"><option value="true" selected>启用</option><option value="false">停用</option></select>
+                  </div>
                 </div>
-                <p class="form-note">Userbot 账号必须已加入来源频道。配置保存到数据库并即时生效，无需重启。</p>
+                <p class="form-note">Userbot 账号必须已加入来源频道。Relay 仅按设定间隔扫描来源频道，不实时处理频道更新。</p>
                 <div class="relay-actions">
                   <button class="button" id="relay-submit" type="submit" disabled>保存 Relay</button>
                   <button class="button secondary" id="relay-reset" type="button" hidden>取消编辑</button>
@@ -692,7 +699,7 @@
           <section class="panel" aria-labelledby="relay-list-title">
             <div class="panel-body">
               <div class="panel-heading">
-                <div><h2 id="relay-list-title">Relay 路由</h2><p>每个来源频道与目标 Bot 只能配置一条路由。</p></div>
+                <div><h2 id="relay-list-title">Relay 路由</h2><p>每个来源频道与目标 Bot 只能配置一条定时扫描路由。</p></div>
                 <button class="button secondary small" id="relay-refresh" type="button" disabled>刷新</button>
               </div>
               <div class="task-list" id="relay-list">
@@ -1146,7 +1153,8 @@
         target_bot: relay.target_bot,
         enabled,
         timeout_seconds: relay.timeout_seconds,
-        quiet_seconds: relay.quiet_seconds
+        quiet_seconds: relay.quiet_seconds,
+        scan_interval_minutes: relay.scan_interval_minutes
       };
     }
 
@@ -1168,6 +1176,7 @@
       document.querySelector("#relay-target").value = `@${relay.target_bot}`;
       document.querySelector("#relay-timeout").value = relay.timeout_seconds;
       document.querySelector("#relay-quiet").value = relay.quiet_seconds;
+      document.querySelector("#relay-scan-interval").value = relay.scan_interval_minutes;
       document.querySelector("#relay-enabled").value = String(relay.enabled);
       document.querySelector("#relay-title").textContent = "编辑 Bot Relay";
       relayReset.hidden = false;
@@ -1186,6 +1195,7 @@
 
       for (const relay of state.relays) {
         const owner = state.users.find(user => user.id === relay.user_id);
+        const history = Array.isArray(relay.history) ? relay.history : [];
         const card = element("article", "task-card");
         const top = element("div", "task-top");
         const title = element("div", "task-title");
@@ -1196,10 +1206,31 @@
         const meta = element("div", "task-meta");
         meta.append(
           element("span", "", `用户：${owner?.chat_id || relay.user_id}`),
+          element("span", "", `扫描：${relay.scan_interval_minutes} 分钟`),
+          element("span", "", relay.last_message_id === null ? "进度：尚未扫描" : relay.last_message_id === 0 ? "进度：暂无消息" : `进度：消息 #${relay.last_message_id}`),
+          element("span", "", `记录：${history.length} 条`),
           element("span", "", `等待：${relay.timeout_seconds} 秒`),
           element("span", "", `静默：${relay.quiet_seconds} 秒`)
         );
         card.append(meta);
+
+        if (history.length) {
+          const details = element("details", "advanced-settings");
+          details.append(element("summary", "", `最近处理记录（${history.length}）`));
+          const historyList = element("div", "task-list");
+          for (const item of history) {
+            const historyCard = element("article", "task-card");
+            const historyTop = element("div", "task-top");
+            const historyTitle = element("div", "task-title");
+            historyTitle.append(element("strong", "", `来源消息 #${item.message_id}`), element("code", "", formatDate(item.processed_at)));
+            historyTop.append(historyTitle, element("span", `badge ${item.success ? "completed" : "failed"}`, item.success ? "已处理" : "失败"));
+            historyCard.append(historyTop);
+            if (item.error) historyCard.append(element("p", "task-error", item.error));
+            historyList.append(historyCard);
+          }
+          details.append(historyList);
+          card.append(details);
+        }
 
         const actions = element("div", "task-bottom");
         const edit = element("button", "button secondary small", "编辑");
@@ -1619,7 +1650,8 @@
         target_bot: document.querySelector("#relay-target").value.trim(),
         enabled: document.querySelector("#relay-enabled").value === "true",
         timeout_seconds: Number(document.querySelector("#relay-timeout").value),
-        quiet_seconds: Number(document.querySelector("#relay-quiet").value)
+        quiet_seconds: Number(document.querySelector("#relay-quiet").value),
+        scan_interval_minutes: Number(document.querySelector("#relay-scan-interval").value)
       };
       relaySubmit.disabled = true;
       relaySubmit.textContent = "正在保存…";

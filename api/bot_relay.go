@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	gotgstorage "github.com/celestix/gotgproto/storage"
 	gotgtypes "github.com/celestix/gotgproto/types"
@@ -19,31 +20,44 @@ import (
 )
 
 const (
-	defaultRelayTimeoutSeconds = 900
-	defaultRelayQuietSeconds   = 5
-	maxRelayTimeoutSeconds     = 24 * 60 * 60
-	maxRelayQuietSeconds       = 5 * 60
+	defaultRelayTimeoutSeconds      = 900
+	defaultRelayQuietSeconds        = 5
+	defaultRelayScanIntervalMinutes = database.DefaultBotRelayScanIntervalMinutes
+	maxRelayTimeoutSeconds          = 24 * 60 * 60
+	maxRelayQuietSeconds            = 5 * 60
+	maxRelayScanIntervalMinutes     = 24 * 60
 )
 
 type botRelayRequest struct {
-	UserID         uint   `json:"user_id"`
-	SourceChat     string `json:"source_chat"`
-	TargetBot      string `json:"target_bot"`
-	Enabled        bool   `json:"enabled"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
-	QuietSeconds   int    `json:"quiet_seconds"`
+	UserID              uint   `json:"user_id"`
+	SourceChat          string `json:"source_chat"`
+	TargetBot           string `json:"target_bot"`
+	Enabled             bool   `json:"enabled"`
+	TimeoutSeconds      int    `json:"timeout_seconds"`
+	QuietSeconds        int    `json:"quiet_seconds"`
+	ScanIntervalMinutes int    `json:"scan_interval_minutes"`
 }
 
 type botRelayResponse struct {
-	ID             uint   `json:"id"`
-	UserID         uint   `json:"user_id"`
-	SourceChatID   int64  `json:"source_chat_id"`
-	SourceChat     string `json:"source_chat"`
-	TargetBotID    int64  `json:"target_bot_id"`
-	TargetBot      string `json:"target_bot"`
-	Enabled        bool   `json:"enabled"`
-	TimeoutSeconds int    `json:"timeout_seconds"`
-	QuietSeconds   int    `json:"quiet_seconds"`
+	ID                  uint                      `json:"id"`
+	UserID              uint                      `json:"user_id"`
+	SourceChatID        int64                     `json:"source_chat_id"`
+	SourceChat          string                    `json:"source_chat"`
+	TargetBotID         int64                     `json:"target_bot_id"`
+	TargetBot           string                    `json:"target_bot"`
+	Enabled             bool                      `json:"enabled"`
+	TimeoutSeconds      int                       `json:"timeout_seconds"`
+	QuietSeconds        int                       `json:"quiet_seconds"`
+	ScanIntervalMinutes int                       `json:"scan_interval_minutes"`
+	LastMessageID       *int                      `json:"last_message_id"`
+	History             []botRelayHistoryResponse `json:"history"`
+}
+
+type botRelayHistoryResponse struct {
+	MessageID   int       `json:"message_id"`
+	Success     bool      `json:"success"`
+	Error       string    `json:"error,omitempty"`
+	ProcessedAt time.Time `json:"processed_at"`
 }
 
 type relayUserResponse struct {
@@ -57,7 +71,7 @@ type relayUserResponse struct {
 func (h *Handlers) BotRelaysHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		relays, err := database.GetAllBotRelays(r.Context())
+		relays, err := database.GetAllBotRelaysWithHistory(r.Context())
 		if err != nil {
 			WriteError(w, http.StatusInternalServerError, "relay_list_failed", "failed to list bot relays")
 			return
@@ -115,6 +129,7 @@ func (h *Handlers) BotRelayHandler(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusBadRequest, "invalid_relay", err.Error())
 			return
 		}
+		routeChanged := relay.SourceChatID != updated.SourceChatID || relay.TargetBotID != updated.TargetBotID
 		relay.UserID = updated.UserID
 		relay.SourceChatID = updated.SourceChatID
 		relay.SourceChat = updated.SourceChat
@@ -123,7 +138,11 @@ func (h *Handlers) BotRelayHandler(w http.ResponseWriter, r *http.Request) {
 		relay.Enabled = updated.Enabled
 		relay.TimeoutSeconds = updated.TimeoutSeconds
 		relay.QuietSeconds = updated.QuietSeconds
-		if err := database.UpdateBotRelay(r.Context(), relay); err != nil {
+		relay.ScanIntervalMinutes = updated.ScanIntervalMinutes
+		if routeChanged {
+			relay.LastMessageID = nil
+		}
+		if err := database.UpdateBotRelay(r.Context(), relay, routeChanged); err != nil {
 			WriteError(w, http.StatusBadRequest, "relay_save_failed", "this source channel and target bot route already exists")
 			return
 		}
@@ -178,6 +197,9 @@ func decodeBotRelayRequest(w http.ResponseWriter, r *http.Request) (botRelayRequ
 	if req.QuietSeconds == 0 {
 		req.QuietSeconds = defaultRelayQuietSeconds
 	}
+	if req.ScanIntervalMinutes == 0 {
+		req.ScanIntervalMinutes = defaultRelayScanIntervalMinutes
+	}
 	return req, true
 }
 
@@ -197,6 +219,9 @@ func resolveBotRelay(r *http.Request, req botRelayRequest) (*database.BotRelay, 
 	}
 	if req.QuietSeconds > req.TimeoutSeconds {
 		return nil, errors.New("quiet_seconds cannot exceed timeout_seconds")
+	}
+	if req.ScanIntervalMinutes < 1 || req.ScanIntervalMinutes > maxRelayScanIntervalMinutes {
+		return nil, fmt.Errorf("scan_interval_minutes must be between 1 and %d", maxRelayScanIntervalMinutes)
 	}
 
 	userCtx := userclient.GetCtx()
@@ -257,14 +282,15 @@ func resolveBotRelay(r *http.Request, req botRelayRequest) (*database.BotRelay, 
 	}
 
 	return &database.BotRelay{
-		UserID:         owner.ID,
-		SourceChatID:   sourceChatID,
-		SourceChat:     sourceName,
-		TargetBotID:    target.GetID(),
-		TargetBot:      targetName,
-		Enabled:        req.Enabled,
-		TimeoutSeconds: req.TimeoutSeconds,
-		QuietSeconds:   req.QuietSeconds,
+		UserID:              owner.ID,
+		SourceChatID:        sourceChatID,
+		SourceChat:          sourceName,
+		TargetBotID:         target.GetID(),
+		TargetBot:           targetName,
+		Enabled:             req.Enabled,
+		TimeoutSeconds:      req.TimeoutSeconds,
+		QuietSeconds:        req.QuietSeconds,
+		ScanIntervalMinutes: req.ScanIntervalMinutes,
 	}, nil
 }
 
@@ -282,16 +308,32 @@ func parseRelaySource(raw string) (string, int64, error) {
 }
 
 func botRelayToResponse(relay database.BotRelay) botRelayResponse {
+	scanIntervalMinutes := relay.ScanIntervalMinutes
+	if scanIntervalMinutes == 0 {
+		scanIntervalMinutes = defaultRelayScanIntervalMinutes
+	}
+	history := make([]botRelayHistoryResponse, 0, len(relay.History))
+	for _, item := range relay.History {
+		history = append(history, botRelayHistoryResponse{
+			MessageID:   item.MessageID,
+			Success:     item.Success,
+			Error:       item.Error,
+			ProcessedAt: item.UpdatedAt,
+		})
+	}
 	return botRelayResponse{
-		ID:             relay.ID,
-		UserID:         relay.UserID,
-		SourceChatID:   relay.SourceChatID,
-		SourceChat:     relay.SourceChat,
-		TargetBotID:    relay.TargetBotID,
-		TargetBot:      relay.TargetBot,
-		Enabled:        relay.Enabled,
-		TimeoutSeconds: relay.TimeoutSeconds,
-		QuietSeconds:   relay.QuietSeconds,
+		ID:                  relay.ID,
+		UserID:              relay.UserID,
+		SourceChatID:        relay.SourceChatID,
+		SourceChat:          relay.SourceChat,
+		TargetBotID:         relay.TargetBotID,
+		TargetBot:           relay.TargetBot,
+		Enabled:             relay.Enabled,
+		TimeoutSeconds:      relay.TimeoutSeconds,
+		QuietSeconds:        relay.QuietSeconds,
+		ScanIntervalMinutes: scanIntervalMinutes,
+		LastMessageID:       relay.LastMessageID,
+		History:             history,
 	}
 }
 

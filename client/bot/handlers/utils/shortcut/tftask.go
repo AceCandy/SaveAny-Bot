@@ -1,6 +1,7 @@
 package shortcut
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -38,7 +39,7 @@ func CreateAndAddTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor storage
 				"Error": err.Error(),
 			}),
 		})
-		return dispatcher.EndGroups
+		return endGroupsWithError(fmt.Errorf("get user by chat ID: %w", err))
 	}
 	strategy = conflictutil.ResolveStrategy(user, strategy)
 	if user.ApplyRule && user.Rules != nil {
@@ -59,7 +60,7 @@ func CreateAndAddTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor storage
 						"Error": err.Error(),
 					}),
 				})
-				return dispatcher.EndGroups
+				return endGroupsWithError(fmt.Errorf("get storage: %w", err))
 			}
 		}
 	}
@@ -98,7 +99,7 @@ startCreateTask:
 				"Error": err.Error(),
 			}),
 		})
-		return dispatcher.EndGroups
+		return endGroupsWithError(fmt.Errorf("create task: %w", err))
 	}
 	if err := core.AddTask(injectCtx, task); err != nil {
 		logger.Errorf("add task failed: %s", err)
@@ -108,7 +109,7 @@ startCreateTask:
 				"Error": err.Error(),
 			}),
 		})
-		return dispatcher.EndGroups
+		return endGroupsWithError(fmt.Errorf("add task: %w", err))
 	}
 	text, entities := msgelem.BuildTaskAddedEntities(ctx, file.Name(), core.GetLength(injectCtx))
 	ctx.EditMessage(userID, &tg.MessagesEditMessageRequest{
@@ -133,7 +134,7 @@ func CreateAndAddBatchTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor st
 				"Error": err.Error(),
 			}),
 		})
-		return dispatcher.EndGroups
+		return endGroupsWithError(fmt.Errorf("get user by chat ID: %w", err))
 	}
 	strategy = conflictutil.ResolveStrategy(user, strategy)
 
@@ -176,7 +177,7 @@ func CreateAndAddBatchTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor st
 						"Error": err.Error(),
 					}),
 				})
-				return dispatcher.EndGroups
+				return endGroupsWithError(fmt.Errorf("get storage: %w", err))
 			}
 		}
 		if !matchedDirPath.NeedNewForAlbum() {
@@ -201,7 +202,7 @@ func CreateAndAddBatchTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor st
 						"Error": err.Error(),
 					}),
 				})
-				return dispatcher.EndGroups
+				return endGroupsWithError(fmt.Errorf("create task element: %w", err))
 			}
 			elems = append(elems, *elem)
 		} else {
@@ -254,7 +255,7 @@ func CreateAndAddBatchTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor st
 						"Error": err.Error(),
 					}),
 				})
-				return dispatcher.EndGroups
+				return endGroupsWithError(fmt.Errorf("create album task element: %w", err))
 			}
 			elems = append(elems, *elem)
 		}
@@ -288,7 +289,7 @@ func CreateAndAddBatchTGFileTaskWithEdit(ctx *ext.Context, userID int64, stor st
 				"Error": err.Error(),
 			}),
 		})
-		return dispatcher.EndGroups
+		return endGroupsWithError(fmt.Errorf("add batch task: %w", err))
 	}
 	ctx.EditMessage(userID, &tg.MessagesEditMessageRequest{
 		ID:          trackMsgID,
@@ -316,6 +317,10 @@ func promptTGFileConflictStrategy(ctx *ext.Context, userID int64, storageName, d
 		ReplyMarkup: markup,
 	})
 	return dispatcher.EndGroups
+}
+
+func endGroupsWithError(err error) error {
+	return fmt.Errorf("%w: %w", dispatcher.EndGroups, err)
 }
 
 func selectedConflictStrategy(strategies []string) string {

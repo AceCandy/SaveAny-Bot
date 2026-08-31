@@ -1,6 +1,11 @@
 package api
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/krau/SaveAny-Bot/database"
+)
 
 func TestParseRelaySource(t *testing.T) {
 	tests := []struct {
@@ -26,5 +31,22 @@ func TestParseRelaySource(t *testing.T) {
 				t.Fatalf("parseRelaySource() = %q, %d; want %q, %d", gotRef, gotID, tt.wantRef, tt.wantID)
 			}
 		})
+	}
+}
+
+func TestBotRelayToResponseUsesDefaultScanInterval(t *testing.T) {
+	processedAt := time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)
+	history := database.BotRelayHistory{
+		MessageID: 14,
+		Success:   false,
+		Error:     "failed",
+	}
+	history.UpdatedAt = processedAt
+	response := botRelayToResponse(database.BotRelay{History: []database.BotRelayHistory{history}})
+	if response.ScanIntervalMinutes != defaultRelayScanIntervalMinutes {
+		t.Fatalf("ScanIntervalMinutes = %d; want %d", response.ScanIntervalMinutes, defaultRelayScanIntervalMinutes)
+	}
+	if len(response.History) != 1 || response.History[0].MessageID != 14 || response.History[0].Success || response.History[0].Error != "failed" || !response.History[0].ProcessedAt.Equal(processedAt) {
+		t.Fatalf("History = %#v; want mapped failure record", response.History)
 	}
 }

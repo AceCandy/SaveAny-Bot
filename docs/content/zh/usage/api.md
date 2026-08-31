@@ -153,15 +153,16 @@ Bot Relay 路由独立保存在数据库中，新增、编辑、启停和删除�
   "target_bot": "btfffbot",
   "enabled": true,
   "timeout_seconds": 900,
-  "quiet_seconds": 5
+  "quiet_seconds": 5,
+  "scan_interval_minutes": 5
 }
 ```
 
-来源必须是 Userbot 可访问的 Telegram 频道，可填写 `@username`、`username` 或 Bot API 风格的 `-100...` 频道 ID；目标必须是 Bot。`timeout_seconds` 允许 1–86400 秒，`quiet_seconds` 允许 1–300 秒且不能超过等待超时。
+来源必须是 Userbot 可访问的 Telegram 频道，可填写 `@username`、`username` 或 Bot API 风格的 `-100...` 频道 ID；目标必须是 Bot。Relay 不实时处理来源频道更新，而是按 `scan_interval_minutes`（默认 5，允许 1–1440）定时增量扫描。首次扫描处理最新 10 条，之后分页回溯到响应中的 `last_message_id`，再按消息 ID 升序处理；首次扫描前该字段为 `null`。GET 响应中的 `history` 保存最近 20 条消息的处理结果，包含 `message_id`、`success`、`error` 和 `processed_at`；同一消息重试时更新原记录。`timeout_seconds` 允许 1–86400 秒，`quiet_seconds` 允许 1–300 秒且不能超过等待超时。
 
 ### PUT/DELETE /api/v1/bot-relays/:id — 更新或删除 Relay
 
-`PUT` 请求体与新增接口相同。配置修改后，频道中新的 Deep Link 会立即使用最新配置。
+`PUT` 请求体与新增接口相同。修改来源频道或目标 Bot 会重置 `last_message_id`、清空原处理记录，下一次扫描重新处理最新 10 条。
 
 ---
 
