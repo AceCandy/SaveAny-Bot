@@ -46,7 +46,6 @@ type botRelayRequest struct {
 }
 
 type botRelayResponse struct {
-	ctx     *ext.Context
 	message *tg.Message
 }
 
@@ -103,7 +102,7 @@ func (m *botRelayManager) handleUpdate(ctx *ext.Context, update *ext.Update) err
 			return dispatcher.ContinueGroups
 		}
 		select {
-		case m.responses <- botRelayResponse{ctx: ctx, message: message.Message}:
+		case m.responses <- botRelayResponse{message: message.Message}:
 		case <-m.ctx.Done():
 		}
 		return dispatcher.EndGroups
@@ -366,7 +365,7 @@ func (m *botRelayManager) process(request botRelayRequest) error {
 				}
 				continue
 			}
-			file, err := relayFile(response.ctx, response.message, media)
+			file, err := relayFile(response.message, media)
 			if err != nil {
 				logger.Warn("Ignoring unsupported relay media", "message_id", response.message.ID, "media_type", media.TypeName(), "error", err)
 				continue
@@ -408,13 +407,13 @@ func relayResponseMatches(message *tg.Message, startMessageID int) bool {
 	return true
 }
 
-func relayFile(ctx *ext.Context, message *tg.Message, media tg.MessageMediaClass) (tfile.TGFileMessage, error) {
+func relayFile(message *tg.Message, media tg.MessageMediaClass) (tfile.TGFileMessage, error) {
 	switch media.(type) {
 	case *tg.MessageMediaDocument, *tg.MessageMediaPhoto:
 	default:
 		return nil, fmt.Errorf("unsupported media type: %s", media.TypeName())
 	}
-	return tfile.FromMediaMessage(media, ctx.Raw, message, tfile.WithNameIfEmpty(
+	return tfile.FromMediaMessage(media, userclient.CurrentDownloader(), message, tfile.WithNameIfEmpty(
 		tgutil.GenFileNameFromMessage(*message),
 	))
 }
