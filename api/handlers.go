@@ -1,8 +1,10 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -11,14 +13,20 @@ import (
 	"github.com/krau/SaveAny-Bot/storage"
 )
 
+type mediaMetadataExtractor func(ctx context.Context, url string) (*MediaMetadataResponse, error)
+
 // Handlers 处理器结构体
 type Handlers struct {
-	factory *TaskFactory
+	factory                *TaskFactory
+	mediaMetadataExtractor mediaMetadataExtractor
 }
 
 // NewHandlers 创建处理器
 func NewHandlers(factory *TaskFactory) *Handlers {
-	return &Handlers{factory: factory}
+	return &Handlers{
+		factory:                factory,
+		mediaMetadataExtractor: extractMediaMetadata,
+	}
 }
 
 // CreateTaskHandler 创建任务处理器
@@ -69,6 +77,16 @@ func (h *Handlers) ListTasksHandler(w http.ResponseWriter, r *http.Request) {
 		info := convertTaskProgressToResponse(task)
 		response = append(response, info)
 	}
+
+	// GetAllTasks walks a map, so the order is otherwise nondeterministic.
+	// Newest first, breaking ties on task ID to keep the order stable across
+	// calls when two tasks share a creation timestamp.
+	sort.Slice(response, func(i, j int) bool {
+		if !response[i].CreatedAt.Equal(response[j].CreatedAt) {
+			return response[i].CreatedAt.After(response[j].CreatedAt)
+		}
+		return response[i].TaskID > response[j].TaskID
+	})
 
 	WriteJSON(w, http.StatusOK, TasksListResponse{
 		Tasks: response,
@@ -145,6 +163,31 @@ func (h *Handlers) ListStoragesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSON(w, http.StatusOK, StoragesResponse{Storages: storages})
+}
+
+// GetMediaMetadataHandler 获取媒体元数据
+func (h *Handlers) GetMediaMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteError(w, http.StatusMethodNotAllowed, "method_not_allowed", "only GET method is allowed")
+		return
+	}
+
+	mediaURL := strings.TrimSpace(r.URL.Query().Get("url"))
+	if mediaURL == "" {
+		WriteError(w, http.StatusBadRequest, "invalid_request", "url query parameter is required")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	resp, err := h.mediaMetadataExtractor(ctx, mediaURL)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, "metadata_extraction_failed", err.Error())
+		return
+	}
+
+	WriteJSON(w, http.StatusOK, resp)
 }
 
 // GetTaskTypesHandler 获取支持的任务类型

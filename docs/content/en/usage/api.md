@@ -196,6 +196,33 @@ Reads the latest logs by date. `date` uses `YYYY-MM-DD` and defaults to the newe
 
 ---
 
+### GET /api/v1/media-metadata — Media Metadata Lookup
+
+Inspect a Telegram message link, direct media URL, or other yt-dlp-supported media URL and return available metadata without downloading the full file.
+
+Request:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/media-metadata?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dxxx" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+
+```json
+{
+  "url": "https://www.youtube.com/watch?v=xxx",
+  "title": "Example title",
+  "thumbnail": "https://example.com/thumb.jpg",
+  "uploader": "Example uploader",
+  "duration_seconds": 213.0
+}
+```
+
+Returns `400 invalid_request` when `url` is missing, or `400 metadata_extraction_failed` when Telegram, direct probing, and yt-dlp all fail to inspect the media URL.
+
+---
+
 ### POST /api/v1/tasks — Create Task
 
 **Request headers:**
@@ -413,7 +440,7 @@ For `transfer` tasks, the top-level `storage` field is still required for valida
 
 ### GET /api/v1/tasks — List All Tasks
 
-Returns save tasks created through the HTTP API, Telegram Bot, and Bot Relay. Records are kept in memory only and cleared on restart; `source` is `api`, `bot`, or `relay`.
+Returns save tasks created through the HTTP API, Telegram Bot, and Bot Relay, newest first by creation time. Records are kept in memory and cleared on restart; terminal tasks are also evicted 24 hours after their last update by a sweep that runs every 10 minutes. `source` is `api`, `bot`, or `relay`.
 
 **Response `200 OK`:**
 
@@ -434,7 +461,10 @@ Returns save tasks created through the HTTP API, Telegram Bot, and Bot Relay. Re
       "progress": {
         "total_bytes":      10485760,
         "downloaded_bytes": 5242880,
-        "percent":          50.0
+        "total_files":      3,
+        "downloaded_files": 1,
+        "percent":          50.0,
+        "speed_mbps":       12.5
       }
     }
   ],
@@ -442,7 +472,7 @@ Returns save tasks created through the HTTP API, Telegram Bot, and Bot Relay. Re
 }
 ```
 
-The `progress` field is only included when `total_bytes > 0`. The `error` field is only included when non-empty.
+The `progress` field is included when either `total_bytes` or `total_files` is greater than 0; individual fields within it are omitted when zero. `percent` is computed from bytes when the byte total is known, and falls back to the file count otherwise. `speed_mbps` is the average since the task started running, not an instantaneous rate. The `error` field is only included when non-empty.
 
 ---
 
@@ -489,7 +519,13 @@ The `progress` field is only included when `total_bytes > 0`. The `error` field 
 
 ## Webhook Callbacks
 
-When a `webhook` URL is provided in the create request, SaveAny-Bot sends a `POST` request to that URL when the task reaches a terminal state (`completed`, `failed`, or `cancelled`).
+When a `webhook` URL is provided in the create request, SaveAny-Bot sends a `POST` request to that URL once the task reaches `completed` or `failed`.
+
+{{< hint info >}}
+Cancelled tasks do **not** trigger a webhook — cancellation is already known to whoever issued the DELETE. Each task fires at most one callback.
+{{< /hint >}}
+
+The callback is sent asynchronously, so the task is not delayed by a slow or unreachable endpoint.
 
 **Callback request headers:**
 
@@ -514,4 +550,4 @@ User-Agent: SaveAny-Bot/1.0
 
 `completed_at` is only present when status is `completed` or `failed`. `error` is only present when non-empty.
 
-**Retry policy:** Up to 3 attempts, with delays of 1s, 2s, and 3s between retries. Each request has a 30-second timeout.
+**Retry policy:** Up to 3 attempts. A non-2xx response or a transport error triggers a retry after 100ms, then 400ms. Each request has a 30-second timeout.

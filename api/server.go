@@ -57,6 +57,7 @@ func NewServer(ctx context.Context, restart func()) *Server {
 		}
 	})
 	mux.HandleFunc("/api/v1/storages", handlers.ListStoragesHandler)
+	mux.HandleFunc("/api/v1/media-metadata", handlers.GetMediaMetadataHandler)
 	mux.HandleFunc("/api/v1/task-types", handlers.GetTaskTypesHandler)
 	mux.HandleFunc("/api/v1/users", handlers.ListUsersHandler)
 	mux.HandleFunc("/api/v1/bot-relays", handlers.BotRelaysHandler)

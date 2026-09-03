@@ -196,6 +196,33 @@ Bot Relay 路由独立保存在数据库中，新增、编辑、启停和删除�
 
 ---
 
+### GET /api/v1/media-metadata — 媒体元数据查询
+
+对 Telegram 消息链接、直链音视频地址或其他 yt-dlp 支持的媒体链接进行探测，在不完整下载文件的情况下返回标题、缩略图、上传者和音视频时长等可用元数据。
+
+请求：
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/media-metadata?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dxxx" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+响应：
+
+```json
+{
+  "url": "https://www.youtube.com/watch?v=xxx",
+  "title": "示例标题",
+  "thumbnail": "https://example.com/thumb.jpg",
+  "uploader": "示例上传者",
+  "duration_seconds": 213.0
+}
+```
+
+当缺少 `url` 参数时返回 `400 invalid_request`；当 Telegram、直链探测和 yt-dlp 都无法获取该链接时返回 `400 metadata_extraction_failed`。
+
+---
+
 ### POST /api/v1/tasks — 创建任务
 
 **请求头：**
@@ -413,7 +440,7 @@ Authorization: Bearer <token>
 
 ### GET /api/v1/tasks — 列出所有任务
 
-返回 HTTP API、Telegram Bot 和 Bot Relay 创建的保存任务。记录仅保存在内存中，重启后清空；`source` 为 `api`、`bot` 或 `relay`。
+返回 HTTP API、Telegram Bot 和 Bot Relay 创建的保存任务，并按创建时间由新到旧排序。记录仅保存在内存中，重启后清空；已进入终态的任务还会在最后一次更新 24 小时后清理，清理任务每 10 分钟执行一次。`source` 为 `api`、`bot` 或 `relay`。
 
 **响应 `200 OK`：**
 
@@ -434,7 +461,10 @@ Authorization: Bearer <token>
       "progress": {
         "total_bytes":      10485760,
         "downloaded_bytes": 5242880,
-        "percent":          50.0
+        "total_files":      3,
+        "downloaded_files": 1,
+        "percent":          50.0,
+        "speed_mbps":       12.5
       }
     }
   ],
@@ -442,7 +472,7 @@ Authorization: Bearer <token>
 }
 ```
 
-`progress` 字段仅在 `total_bytes > 0` 时出现。`error` 字段仅在有错误时出现。
+`progress` 字段在 `total_bytes` 或 `total_files` 大于 0 时出现，其内部字段为 0 时会被省略。`percent` 在已知字节总量时按字节计算，否则回退为按文件数计算。`speed_mbps` 是任务开始运行以来的平均速度，而非瞬时速度。`error` 字段仅在有错误时出现。
 
 ---
 
@@ -489,7 +519,13 @@ Authorization: Bearer <token>
 
 ## Webhook 回调
 
-创建任务时可设置 `webhook` 字段。当任务进入终态（`completed`、`failed`、`cancelled`）时，Bot 会向该地址发送一个 `POST` 请求。
+创建任务时可设置 `webhook` 字段。当任务进入 `completed` 或 `failed` 状态时，Bot 会向该地址发送一个 `POST` 请求。
+
+{{< hint info >}}
+被取消的任务**不会**触发 Webhook——取消操作的发起方已经知晓结果。每个任务最多只会发送一次回调。
+{{< /hint >}}
+
+回调为异步发送，不会因为回调地址响应缓慢或不可达而阻塞任务。
 
 **回调请求头：**
 
@@ -514,4 +550,4 @@ User-Agent: SaveAny-Bot/1.0
 
 `completed_at` 仅在状态为 `completed` 或 `failed` 时出现。`error` 仅在有错误时出现。
 
-**重试机制：** 最多重试 3 次，重试间隔依次为 1 秒、2 秒、3 秒。每次请求超时为 30 秒。
+**重试机制：** 最多尝试 3 次。响应非 2xx 或请求出错时会重试，间隔依次为 100 毫秒、400 毫秒。每次请求超时为 30 秒。

@@ -3,6 +3,8 @@ services:
     image: ghcr.io/acecandy/saveany-bot:latest
     container_name: saveany-bot
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     volumes:
       - ./data:/app/data
       # Web 全局配置会写回宿主机的此文件，随后由上方重启策略重新加载
