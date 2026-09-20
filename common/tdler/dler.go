@@ -2,7 +2,11 @@ package tdler
 
 import (
 	"context"
+	"errors"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
+	"github.com/gotd/td/rpc"
 	"github.com/gotd/td/telegram/downloader"
 	"github.com/gotd/td/tg"
 	"github.com/krau/SaveAny-Bot/common/utils/dlutil"
@@ -31,5 +35,19 @@ func (c eofAwareClient) UploadGetFile(ctx context.Context, req *tg.UploadGetFile
 	if c.size > 0 && req.Offset >= c.size {
 		return &tg.UploadFile{}, nil
 	}
-	return c.Client.UploadGetFile(ctx, req)
+	// 分块请求在任务中执行，可以等待重连；只重试当前块，避免流式输出重复数据。
+	b := backoff.NewExponentialBackOff(
+		backoff.WithMaxInterval(10*time.Second),
+		backoff.WithMaxElapsedTime(5*time.Minute),
+	)
+	return backoff.RetryWithData(func() (tg.UploadFileClass, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, backoff.Permanent(err)
+		}
+		file, err := c.Client.UploadGetFile(ctx, req)
+		if err != nil && !errors.Is(err, rpc.ErrEngineClosed) {
+			return file, backoff.Permanent(err)
+		}
+		return file, err
+	}, backoff.WithContext(b, ctx))
 }

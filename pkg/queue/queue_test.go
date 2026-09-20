@@ -30,6 +30,32 @@ func TestAddAndLength(t *testing.T) {
 	}
 }
 
+func TestAddWhileFourTasksAreRunning(t *testing.T) {
+	q := queue.NewTaskQueue[int]()
+	t.Cleanup(q.Close)
+	for i := range 4 {
+		if err := q.Add(newTask(fmt.Sprintf("running-%d", i))); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := q.Get(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	added := make(chan error, 1)
+	go func() { added <- q.Add(newTask("fifth")) }()
+	select {
+	case err := <-added:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("adding the fifth task waited for a running task to finish")
+	}
+	if running, queued := q.RunningTasks(), q.QueuedTasks(); len(running) != 4 || len(queued) != 1 || queued[0].ID != "fifth" {
+		t.Fatalf("running = %d, queued = %+v; want 4 running and the fifth queued", len(running), queued)
+	}
+}
+
 func TestDuplicateAdd(t *testing.T) {
 	q := queue.NewTaskQueue[int]()
 	t1 := newTask("dup")

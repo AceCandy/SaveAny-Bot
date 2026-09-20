@@ -2,12 +2,14 @@ package recovery
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/charmbracelet/log"
 	"github.com/gotd/td/bin"
+	"github.com/gotd/td/rpc"
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/tg"
 	"github.com/gotd/td/tgerr"
@@ -54,6 +56,11 @@ func (r *recovery) Handle(next tg.Invoker) telegram.InvokeFunc {
 }
 
 func (r *recovery) shouldRecover(ctx context.Context, err error) bool {
+	// 连接退出会等待 update handler 返回；在 handler 中等待已关闭的 engine
+	// 恢复会反过来阻塞重连。下载续传由任务中的分块请求负责。
+	if errors.Is(err, rpc.ErrEngineClosed) {
+		return false
+	}
 	// context in recovery is used to stop recovery process by external os signal, otherwise we will wait till max retries when user press ctrl+c
 	select {
 	case <-r.ctx.Done():
