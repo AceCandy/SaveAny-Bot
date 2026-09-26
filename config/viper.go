@@ -192,7 +192,11 @@ func setDefaults(v *viper.Viper) {
 		"api.token":  "",
 
 		// yt-dlp
-		"ytdlp.recode": "mp4",
+		"ytdlp.recode":             "mp4",
+		"ytdlp.filename_template":  DefaultYtdlpFilenameTemplate,
+		"ytdlp.max_height":         0,
+		"ytdlp.format":             "",
+		"ytdlp.restrict_filenames": false,
 	}
 
 	for key, value := range defaultConfigs {
