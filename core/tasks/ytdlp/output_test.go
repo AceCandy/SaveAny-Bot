@@ -17,6 +17,7 @@ func TestRewriteOutputTemplates(t *testing.T) {
 	}{
 		{name: "no flags", flags: nil, want: []string{}},
 		{name: "unrelated flags", flags: []string{"-f", "best"}, want: []string{"-f", "best"}},
+		{name: "unrelated long output option", flags: []string{"--output-na-placeholder", "unknown"}, want: []string{"--output-na-placeholder", "unknown"}},
 		{name: "short flag with separate value", flags: []string{"-o", "%(title)s.%(ext)s"}, want: []string{"-o", "/dl/%(title)s.%(ext)s"}},
 		{name: "long flag with separate value", flags: []string{"--output", "sub/%(title)s.%(ext)s"}, want: []string{"--output", "/dl/sub/%(title)s.%(ext)s"}},
 		{name: "long flag with equals", flags: []string{"--output=%(id)s.%(ext)s"}, want: []string{"--output=/dl/%(id)s.%(ext)s"}},
